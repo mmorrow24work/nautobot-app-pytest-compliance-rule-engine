@@ -23,6 +23,7 @@ python = ">=3.9,<3.13"
 nautobot = "^2.0.0"
 
 [tool.poetry.group.dev.dependencies]
+pytest = "*"
 black = "*"
 ruff = "*"
 
