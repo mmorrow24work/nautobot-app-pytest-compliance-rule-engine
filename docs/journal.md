@@ -73,12 +73,12 @@ Recomputed from every entry below on each run.
 <!-- VELOCITY_START -->
 | Metric | Value |
 |---|---|
-| Issues with recorded metrics | 2 |
-| Successful runs | 2 |
-| Mean time per issue | 2m 22s |
-| Mean turns per issue | 53 |
-| Mean output tokens per issue | 10,842 |
-| Mean estimated cost per issue | $0.1631 |
+| Issues with recorded metrics | 3 |
+| Successful runs | 3 |
+| Mean time per issue | 4m 51s |
+| Mean turns per issue | 61 |
+| Mean output tokens per issue | 14,615 |
+| Mean estimated cost per issue | $0.2198 |
 <!-- VELOCITY_END -->
 
 ---
@@ -113,3 +113,16 @@ Recomputed from every entry below on each run.
 - **Output Tokens:** 20747
 - **Estimated Cost:** $0.3121 (notional — see above)
 - **Run:** https://github.com/mmorrow24work/nautobot-app-pytest-compliance-rule-engine/actions/runs/31623361217
+
+## 2026-08-12 — Issue #2: M0: GitHub Actions CI workflow with Postgres/Redis service containers
+
+- **Result:** success
+- **PR:** #32
+- **Milestone:** M0: Repo scaffolding & CI foundation
+- **Model:** claude-sonnet-5
+- **Execution Duration:** 591 seconds
+- **Turns:** 78
+- **Input Tokens:** 238
+- **Output Tokens:** 22160
+- **Estimated Cost:** $0.3331 (notional — see above)
+- **Run:** https://github.com/mmorrow24work/nautobot-app-pytest-compliance-rule-engine/actions/runs/31645573287
