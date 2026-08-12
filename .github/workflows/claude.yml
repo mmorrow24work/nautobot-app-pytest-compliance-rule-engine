@@ -1,0 +1,102 @@
+name: claude
+
+# Lane B (unattended) driver for the nautobot-app-pytest-compliance-rule-engine
+# build. Fires when the `claude-go` label is applied to an issue, or on demand
+# via workflow_dispatch.
+#
+# Lane discipline: 4 of the 30 issues carry BOTH `claude-go` and
+# `lane:interactive` (the sandboxing/stretch work you drive yourself via Lane
+# A). Those are excluded from the automatic path below on purpose -- they can
+# still be run deliberately with workflow_dispatch. `lane:manual` is excluded
+# outright.
+
+on:
+  issues:
+    types: [labeled]
+  issue_comment:
+    types: [created]
+  workflow_dispatch:
+    inputs:
+      issue_number:
+        description: "Issue number to implement (overrides lane exclusions)"
+        required: true
+        type: string
+
+permissions:
+  contents: write
+  issues: write
+  pull-requests: write
+  id-token: write
+
+jobs:
+  claude:
+    if: >
+      github.event_name == 'workflow_dispatch' ||
+      (github.event_name == 'issues' &&
+       github.event.label.name == 'claude-go' &&
+       !contains(github.event.issue.labels.*.name, 'lane:interactive') &&
+       !contains(github.event.issue.labels.*.name, 'lane:manual')) ||
+      (github.event_name == 'issue_comment' &&
+       contains(github.event.comment.body, '@claude') &&
+       contains(fromJSON('["OWNER","MEMBER","COLLABORATOR"]'), github.event.comment.author_association))
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Resolve target issue and model
+        id: cfg
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            num="${{ inputs.issue_number }}"
+          else
+            num="${{ github.event.issue.number }}"
+          fi
+          echo "number=$num" >> "$GITHUB_OUTPUT"
+
+          labels=$(gh issue view "$num" --repo "$GITHUB_REPOSITORY" \
+                     --json labels --jq '[.labels[].name] | join(",")')
+          echo "Issue #$num labels: $labels"
+
+          # The `model:opus` label escalates off the Sonnet default.
+          if printf '%s' "$labels" | grep -q 'model:opus'; then
+            echo "model=claude-opus-5" >> "$GITHUB_OUTPUT"
+          else
+            echo "model=claude-sonnet-5" >> "$GITHUB_OUTPUT"
+          fi
+
+      - uses: anthropics/claude-code-action@v1
+        with:
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          # Prefer a PAT when present: PRs opened with the default GITHUB_TOKEN
+          # do NOT trigger other workflows, so CI would silently never run on
+          # Claude's PRs. Falls back to GITHUB_TOKEN until PAT_TOKEN is set.
+          github_token: ${{ secrets.PAT_TOKEN || secrets.GITHUB_TOKEN }}
+          track_progress: true
+          base_branch: master
+          prompt: |
+            Implement issue #${{ steps.cfg.outputs.number }} in this repository.
+
+            Read CLAUDE.md first and obey it: conventions, the repo map, the
+            package layout, and the definition of done.
+
+            Implement the issue per its acceptance criteria, touching only files
+            named in the issue or in CLAUDE.md's repo map. This is a Nautobot
+            App: the Python package is nautobot_pytest_compliance_rule_engine.
+
+            Run the checks listed in CLAUDE.md and fix until they are clean. If
+            a check's tooling does not exist yet (early milestones scaffold it),
+            say so in the PR description rather than inventing a workaround.
+
+            If the acceptance criteria are genuinely ambiguous, or the issue
+            depends on work from an earlier milestone that is not merged yet,
+            post one clarifying comment on the issue instead of guessing.
+          claude_args: >-
+            --model ${{ steps.cfg.outputs.model }}
+            --max-turns 80
+            --allowedTools "Bash(poetry:*),Bash(pip:*),Bash(python:*),Bash(pytest:*),Bash(nautobot-server:*),Bash(ruff:*),Bash(black:*),Bash(pre-commit:*),Bash(ls:*),Bash(cat:*),Edit,Read,Write,Glob,Grep"
