@@ -63,6 +63,22 @@ jobs:
                      --json labels --jq '[.labels[].name] | join(",")')
           echo "Issue #$num labels: $labels"
 
+          # Inject the issue title/body into the prompt rather than relying on
+          # Claude shelling out to `gh` to discover its own task: on a
+          # workflow_dispatch run the issue body is not part of the event
+          # payload, and a denied tool call leaves the agent with nothing to
+          # work from. Uses a random heredoc delimiter so issue text cannot
+          # terminate the block early.
+          delim="EOF_$(openssl rand -hex 8)"
+          {
+            echo "title<<$delim"
+            gh issue view "$num" --repo "$GITHUB_REPOSITORY" --json title --jq .title
+            echo "$delim"
+            echo "body<<$delim"
+            gh issue view "$num" --repo "$GITHUB_REPOSITORY" --json body --jq .body
+            echo "$delim"
+          } >> "$GITHUB_OUTPUT"
+
           # The `model:opus` label escalates off the Sonnet default.
           if printf '%s' "$labels" | grep -q 'model:opus'; then
             echo "model=claude-opus-5" >> "$GITHUB_OUTPUT"
@@ -93,24 +109,41 @@ jobs:
           prompt: |
             Implement issue #${{ steps.cfg.outputs.number }} in this repository.
 
+            ## Issue #${{ steps.cfg.outputs.number }}: ${{ steps.cfg.outputs.title }}
+
+            ${{ steps.cfg.outputs.body }}
+
+            ## Instructions
+
             Read CLAUDE.md first and obey it: conventions, the repo map, the
             package layout, and the definition of done.
+
+            You are running unattended. Nobody can approve a tool call or
+            answer a question mid-run, so asking will simply end the run with
+            nothing done. Work with the tools you have.
 
             Implement the issue per its acceptance criteria, touching only files
             named in the issue or in CLAUDE.md's repo map. This is a Nautobot
             App: the Python package is nautobot_pytest_compliance_rule_engine.
 
             Run the checks listed in CLAUDE.md and fix until they are clean. If
-            a check's tooling does not exist yet (early milestones scaffold it),
-            say so in the PR description rather than inventing a workaround.
+            a check's tooling is not installed on this runner (early milestones
+            scaffold it, and CI arrives in a later issue), say so plainly in the
+            PR description rather than inventing a workaround or retrying it.
+
+            Finish by opening a pull request against master. Its description
+            must include the line "Closes #${{ steps.cfg.outputs.number }}", and
+            should explain what you implemented, what you verified, and anything
+            you could not verify here.
 
             If the acceptance criteria are genuinely ambiguous, or the issue
             depends on work from an earlier milestone that is not merged yet,
-            post one clarifying comment on the issue instead of guessing.
+            post one comment on the issue explaining the blocker instead of
+            guessing — then stop.
           claude_args: >-
             --model ${{ steps.cfg.outputs.model }}
             --max-turns 200
-            --allowedTools "Bash(poetry:*),Bash(pip:*),Bash(python:*),Bash(pytest:*),Bash(nautobot-server:*),Bash(ruff:*),Bash(black:*),Bash(pre-commit:*),Bash(ls:*),Bash(cat:*),Edit,Read,Write,Glob,Grep"
+            --allowedTools "Bash(gh:*),Bash(git:*),Bash(poetry:*),Bash(pip:*),Bash(python:*),Bash(python3:*),Bash(pytest:*),Bash(nautobot-server:*),Bash(ruff:*),Bash(black:*),Bash(pre-commit:*),Bash(mkdir:*),Bash(ls:*),Bash(cat:*),Edit,Read,Write,Glob,Grep"
 
       # --- Journal capture -------------------------------------------------
       # Both steps run with always() so failed and turn-capped runs are
