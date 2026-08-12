@@ -73,12 +73,12 @@ Recomputed from every entry below on each run.
 <!-- VELOCITY_START -->
 | Metric | Value |
 |---|---|
-| Issues with recorded metrics | 0 |
-| Successful runs | 0 |
-| Mean time per issue | n/a |
-| Mean turns per issue | n/a |
-| Mean output tokens per issue | n/a |
-| Mean estimated cost per issue | n/a |
+| Issues with recorded metrics | 1 |
+| Successful runs | 1 |
+| Mean time per issue | 0m 28s |
+| Mean turns per issue | 11 |
+| Mean output tokens per issue | 937 |
+| Mean estimated cost per issue | $0.0142 |
 <!-- VELOCITY_END -->
 
 ---
@@ -87,3 +87,16 @@ Recomputed from every entry below on each run.
 
 <!-- ENTRIES_START -->
 <!-- New entries are appended below this marker, newest last. -->
+
+## 2026-08-12 — Issue #1: M0: Scaffold nautobot-pytest-compliance-rule-engine app structure
+
+- **Result:** success
+- **PR:** —
+- **Milestone:** M0: Repo scaffolding & CI foundation
+- **Model:** claude-sonnet-5
+- **Execution Duration:** 28 seconds
+- **Turns:** 11
+- **Input Tokens:** 36
+- **Output Tokens:** 937
+- **Estimated Cost:** $0.0142 (notional — see above)
+- **Run:** https://github.com/mmorrow24work/nautobot-app-pytest-compliance-rule-engine/actions/runs/31622254474
