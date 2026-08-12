@@ -27,10 +27,18 @@
 # Labels used: claude-go, lane:unattended, lane:interactive, lane:manual,
 # model:opus, manual
 #
-# NOTE: issue creation is NOT idempotent -- `gh issue create` always creates
-# a new issue. Re-running this script against a repo that already has these
-# 30 issues will create 30 DUPLICATES. Milestones are safe to re-run; issues
-# are not. Use --milestones-only to (re-)create just the milestones.
+# This script is fully idempotent -- labels, milestones, and issues are all
+# safe to re-run. A second run against a fully-populated repo is a no-op.
+#
+# Issues are matched by EXACT TITLE against existing issues (open and closed).
+# Two consequences worth knowing:
+#   - Editing an issue's title in GitHub makes this script no longer recognize
+#     it, and a re-run will recreate the original. Retitle with care.
+#   - Existing issues are left completely alone. If you change the labels,
+#     milestone, or body text in this script, a re-run will NOT retrofit those
+#     changes onto issues that already exist -- it only skips them.
+#
+# Use --milestones-only to sync just labels and milestones, skipping issues.
 
 set -euo pipefail
 
@@ -110,16 +118,39 @@ if [ "$MILESTONES_ONLY" = "1" ]; then
   exit 0
 fi
 
+echo "==> Loading existing issue titles from $REPO"
+
+# Snapshot every existing issue title (open AND closed) once, so create_issue
+# can skip titles that are already present. Without this, gh issue create
+# would happily append a duplicate of all 30 issues on every re-run.
+declare -A EXISTING_TITLES=()
+while IFS= read -r existing_title; do
+  [ -n "$existing_title" ] && EXISTING_TITLES["$existing_title"]=1
+done < <(gh issue list --repo "$REPO" --state all --limit 1000 \
+           --json title --jq '.[].title')
+
+echo "  found ${#EXISTING_TITLES[@]} existing issue(s)"
 echo "==> Labels and milestones ready. Creating issues..."
+
+CREATED=0
+SKIPPED=0
 
 create_issue() {
   local title="$1"
   local labels="$2"
   local milestone="$3"
   local body="$4"
+  # ":-" guard: bare lookup of a missing key trips `set -u`.
+  if [ -n "${EXISTING_TITLES["$title"]:-}" ]; then
+    echo "Skipping (exists): $title"
+    SKIPPED=$((SKIPPED + 1))
+    return 0
+  fi
   echo "Creating: $title"
   gh issue create --repo "$REPO" --title "$title" \
     --label "$labels" --milestone "$milestone" --body "$body"
+  EXISTING_TITLES["$title"]=1
+  CREATED=$((CREATED + 1))
 }
 
 # ---------------------------------------------------------------------------
@@ -821,7 +852,7 @@ This is documentation only — no code changes.
 EOF
 )"
 
-echo "==> Done. Created 30 issues across 9 milestones in $REPO."
+echo "==> Done. Created $CREATED issue(s), skipped $SKIPPED existing, across 9 milestones in $REPO."
 echo "==> Review the M2 and M8 milestone issues (labeled lane:interactive) —"
 echo "    these are recommended to drive yourself via Lane A rather than the claude-go pipeline."
 echo "==> Milestones: https://github.com/$REPO/milestones"
