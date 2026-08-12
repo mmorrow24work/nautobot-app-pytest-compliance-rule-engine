@@ -4,7 +4,6 @@ from django.db import models
 from nautobot.apps.choices import ChoiceSet
 from nautobot.apps.models import PrimaryModel
 from nautobot.dcim.models import Platform
-from nautobot.extras.models import TagsField
 
 
 class ComplianceRuleSeverityChoices(ChoiceSet):
@@ -41,7 +40,6 @@ class ComplianceRule(PrimaryModel):
     )
     rule_code = models.TextField(help_text="Python/pytest function body executed by the compliance engine.")
     enabled = models.BooleanField(default=True)
-    tags = TagsField()
 
     class Meta:
         """Meta options for ComplianceRule."""

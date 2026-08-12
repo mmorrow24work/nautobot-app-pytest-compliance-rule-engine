@@ -1,7 +1,7 @@
 import uuid
 
 import django.db.models.deletion
-import nautobot.extras.models
+import nautobot.core.models.fields
 from django.db import migrations, models
 
 
@@ -63,7 +63,7 @@ class Migration(migrations.Migration):
                 ),
                 (
                     "tags",
-                    nautobot.extras.models.TagsField(through="extras.TaggedItem", to="extras.tag"),
+                    nautobot.core.models.fields.TagsField(through="extras.TaggedItem", to="extras.tag"),
                 ),
             ],
             options={
