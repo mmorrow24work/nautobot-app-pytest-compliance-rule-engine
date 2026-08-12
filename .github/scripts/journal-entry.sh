@@ -14,6 +14,16 @@ set -uo pipefail
 
 cd "$GITHUB_WORKSPACE" || exit 0
 JOURNAL="docs/journal.md"
+
+# Isolate from whatever Claude left in the working tree. Claude commits its
+# work onto the checked-out branch, so HEAD may carry the implementation
+# commit; an earlier version of this script pushed HEAD:master and thereby
+# published unreviewed work straight to master, bypassing the PR entirely.
+# Detach onto a pristine origin/master so the only thing this script can ever
+# push is its own journal commit.
+git fetch -q origin master || { echo "fetch failed — skipping"; exit 0; }
+git checkout -q -B __journal origin/master || { echo "checkout failed — skipping"; exit 0; }
+
 [ -f "$JOURNAL" ] || { echo "no $JOURNAL — skipping"; exit 0; }
 
 turns=0
@@ -124,10 +134,12 @@ git add "$JOURNAL"
 git diff --staged --quiet && { echo "no journal change"; exit 0; }
 git commit -q -m "docs(journal): record issue #${ISSUE_NUMBER} run"
 
-# Claude pushes its own branches concurrently; rebase rather than clobber.
+# HEAD is the pristine origin/master + exactly one journal commit, so pushing
+# it can never publish anything else. Rebase to absorb concurrent journal
+# pushes from other runs.
 for attempt in 1 2 3; do
-  git pull --rebase --quiet origin master && git push --quiet origin HEAD:master && {
-    echo "journal updated"; exit 0; }
+  git fetch -q origin master && git rebase -q origin/master && \
+    git push --quiet origin HEAD:master && { echo "journal updated"; exit 0; }
   echo "push attempt $attempt failed; retrying"
   sleep 3
 done
