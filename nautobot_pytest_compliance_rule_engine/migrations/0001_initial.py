@@ -10,8 +10,8 @@ class Migration(migrations.Migration):
     initial = True
 
     dependencies = [
-        ("dcim", "0001_initial"),
-        ("extras", "0001_initial"),
+        ("dcim", "__first__"),
+        ("extras", "__first__"),
     ]
 
     operations = [
