@@ -104,5 +104,5 @@ jobs:
             post one clarifying comment on the issue instead of guessing.
           claude_args: >-
             --model ${{ steps.cfg.outputs.model }}
-            --max-turns 80
+            --max-turns 200
             --allowedTools "Bash(poetry:*),Bash(pip:*),Bash(python:*),Bash(pytest:*),Bash(nautobot-server:*),Bash(ruff:*),Bash(black:*),Bash(pre-commit:*),Bash(ls:*),Bash(cat:*),Edit,Read,Write,Glob,Grep"
