@@ -73,12 +73,12 @@ Recomputed from every entry below on each run.
 <!-- VELOCITY_START -->
 | Metric | Value |
 |---|---|
-| Issues with recorded metrics | 3 |
-| Successful runs | 3 |
-| Mean time per issue | 4m 51s |
-| Mean turns per issue | 61 |
-| Mean output tokens per issue | 14,615 |
-| Mean estimated cost per issue | $0.2198 |
+| Issues with recorded metrics | 4 |
+| Successful runs | 4 |
+| Mean time per issue | 4m 12s |
+| Mean turns per issue | 63 |
+| Mean output tokens per issue | 13,141 |
+| Mean estimated cost per issue | $0.1977 |
 <!-- VELOCITY_END -->
 
 ---
@@ -126,3 +126,16 @@ Recomputed from every entry below on each run.
 - **Output Tokens:** 22160
 - **Estimated Cost:** $0.3331 (notional — see above)
 - **Run:** https://github.com/mmorrow24work/nautobot-app-pytest-compliance-rule-engine/actions/runs/31645573287
+
+## 2026-08-12 — Issue #3: M0: Packaging, lint config, and pre-commit hooks
+
+- **Result:** success
+- **PR:** #33
+- **Milestone:** M0: Repo scaffolding & CI foundation
+- **Model:** claude-sonnet-5
+- **Execution Duration:** 136 seconds
+- **Turns:** 67
+- **Input Tokens:** 212
+- **Output Tokens:** 8721
+- **Estimated Cost:** $0.1315 (notional — see above)
+- **Run:** https://github.com/mmorrow24work/nautobot-app-pytest-compliance-rule-engine/actions/runs/31648151026
