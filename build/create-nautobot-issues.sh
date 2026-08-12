@@ -2,78 +2,140 @@
 #
 # create-nautobot-issues.sh
 #
-# Creates all 30 GitHub issues for the nautobot-pytest-compliance build,
-# with correct labels, in a target repo.
+# Creates the 9 real GitHub Milestones and all 30 GitHub issues for the
+# nautobot-app-pytest-compliance-rule-engine build, in a target repo.
 #
 # Usage:
 #   ./create-nautobot-issues.sh OWNER/REPO
+#   ./create-nautobot-issues.sh mmorrow24work/nautobot-app-pytest-compliance-rule-engine
 #
-# Requires: gh CLI authenticated (gh auth login), repo already created.
+# Requires: gh CLI authenticated (gh auth login), jq, repo already created.
 #
-# Labels used: claude-go, milestone:M0..M8, lane:unattended,
-# lane:interactive, lane:manual, model:opus, manual
+# Design notes (earlier drafts of this script are in git history):
+#   - Uses real GitHub Milestones (the /milestones API), NOT
+#     "milestone:M0".."milestone:M8" labels. Labels and Milestones are
+#     unrelated GitHub features; an earlier draft created only the labels,
+#     which left the Milestones tab empty.
+#   - Milestone creation is idempotent: an existing milestone of the same
+#     title is reused, so re-running does not duplicate milestones.
+#   - Every issue gets a milestone, including the M7 manual install issue,
+#     which an earlier draft left unassigned.
+#   - App is nautobot-pytest-compliance-rule-engine; Python package is
+#     nautobot_pytest_compliance_rule_engine. The target repo is always the
+#     OWNER/REPO argument, never hardcoded.
 #
-# This script ensures all labels exist first (gh label create is
-# idempotent-safe via --force), then creates each issue with its title,
-# body (from a heredoc), and labels.
+# Labels used: claude-go, lane:unattended, lane:interactive, lane:manual,
+# model:opus, manual
+#
+# NOTE: issue creation is NOT idempotent -- `gh issue create` always creates
+# a new issue. Re-running this script against a repo that already has these
+# 30 issues will create 30 DUPLICATES. Milestones are safe to re-run; issues
+# are not. Use --milestones-only to (re-)create just the milestones.
 
 set -euo pipefail
 
+MILESTONES_ONLY=0
+if [ "${1:-}" = "--milestones-only" ]; then
+  MILESTONES_ONLY=1
+  shift
+fi
+
 if [ $# -ne 1 ]; then
-  echo "Usage: $0 OWNER/REPO"
+  echo "Usage: $0 [--milestones-only] OWNER/REPO"
   exit 1
 fi
 
 REPO="$1"
 
+if ! command -v jq >/dev/null 2>&1; then
+  echo "ERROR: jq is required but not installed." >&2
+  exit 1
+fi
+
 echo "==> Ensuring labels exist in $REPO"
 
 declare -a LABELS=(
-  "claude-go:1f883d:Triggers unattended Lane B pipeline"
-  "milestone:M0:5319e7:Repo scaffolding & CI foundation"
-  "milestone:M1:5319e7:Data models"
-  "milestone:M2:d73a4a:Sandboxed rule execution engine"
-  "milestone:M3:5319e7:Job execution & device data gathering"
-  "milestone:M4:5319e7:Views & UI"
-  "milestone:M5:5319e7:REST API"
-  "milestone:M6:5319e7:Example rules & seed data"
-  "milestone:M7:5319e7:Documentation & release"
-  "milestone:M8:fbca04:Stretch — live device validation"
-  "lane:unattended:0e8a16:Runs via claude-go Lane B pipeline"
-  "lane:interactive:1d76db:Recommended to drive interactively (Lane A)"
-  "lane:manual:e4e669:No Claude Code — manual task"
-  "model:opus:d93f0b:Escalate to Claude Opus 5 instead of Sonnet 5 default"
-  "manual:e4e669:Manual task, not for automation"
+  "claude-go|1f883d|Triggers unattended Lane B pipeline"
+  "lane:unattended|0e8a16|Runs via claude-go Lane B pipeline"
+  "lane:interactive|1d76db|Recommended to drive interactively (Lane A)"
+  "lane:manual|e4e669|No Claude Code — manual task"
+  "model:opus|d93f0b|Escalate to Claude Opus 5 instead of Sonnet 5 default"
+  "manual|e4e669|Manual task, not for automation"
 )
 
 for entry in "${LABELS[@]}"; do
-  IFS=':' read -r name color desc <<< "$entry"
+  IFS='|' read -r name color desc <<< "$entry"
   gh label create "$name" --repo "$REPO" --color "$color" --description "$desc" --force 2>/dev/null || true
 done
 
-echo "==> Labels ready. Creating issues..."
+echo "==> Ensuring milestones exist in $REPO"
+
+# Real GitHub Milestones (title|description). Titles are matched exactly, so
+# re-running reuses existing milestones instead of creating duplicates.
+declare -a MILESTONES=(
+  "M0: Repo scaffolding & CI foundation|Repo scaffolding & CI foundation"
+  "M1: Data models|Data models"
+  "M2: Sandboxed rule execution engine|Sandboxed rule execution engine"
+  "M3: Job execution & device data gathering|Job execution & device data gathering"
+  "M4: Views & UI|Views & UI"
+  "M5: REST API|REST API"
+  "M6: Example rules & seed data|Example rules & seed data"
+  "M7: Documentation & release|Documentation & release"
+  "M8: Stretch — live device validation|Stretch — live device validation"
+)
+
+ensure_milestone() {
+  local title="$1"
+  local desc="$2"
+  local existing
+  existing=$(gh api "repos/$REPO/milestones?state=all&per_page=100" \
+    | jq -r --arg t "$title" 'map(select(.title == $t)) | .[0].number // empty')
+  if [ -n "$existing" ]; then
+    echo "  exists:  #$existing $title"
+  else
+    local num
+    num=$(gh api "repos/$REPO/milestones" \
+      -f title="$title" -f description="$desc" --jq '.number')
+    echo "  created: #$num $title"
+  fi
+}
+
+for entry in "${MILESTONES[@]}"; do
+  IFS='|' read -r ms_title ms_desc <<< "$entry"
+  ensure_milestone "$ms_title" "$ms_desc"
+done
+
+if [ "$MILESTONES_ONLY" = "1" ]; then
+  echo "==> --milestones-only given; skipping issue creation."
+  exit 0
+fi
+
+echo "==> Labels and milestones ready. Creating issues..."
 
 create_issue() {
   local title="$1"
   local labels="$2"
-  local body="$3"
+  local milestone="$3"
+  local body="$4"
   echo "Creating: $title"
-  gh issue create --repo "$REPO" --title "$title" --label "$labels" --body "$body"
+  gh issue create --repo "$REPO" --title "$title" \
+    --label "$labels" --milestone "$milestone" --body "$body"
 }
 
 # ---------------------------------------------------------------------------
 # M0 — Scaffolding & CI Foundation
 # ---------------------------------------------------------------------------
 
-create_issue "M0: Scaffold nautobot-pytest-compliance app structure" \
-  "claude-go,milestone:M0,lane:unattended" \
+create_issue "M0: Scaffold nautobot-pytest-compliance-rule-engine app structure" \
+  "claude-go,lane:unattended" \
+  "M0: Repo scaffolding & CI foundation" \
   "$(cat <<'EOF'
-Scaffold a new Nautobot App called `nautobot-pytest-compliance` using the
+Scaffold a new Nautobot App called `nautobot-pytest-compliance-rule-engine` using the
 standard Nautobot App cookiecutter/structure (see
 https://docs.nautobot.com/projects/core/en/stable/apps/api/).
 
 Create:
-- Standard package layout: nautobot_pytest_compliance/{models.py, views.py,
+- Standard package layout: nautobot_pytest_compliance_rule_engine/{models.py, views.py,
   tables.py, filters.py, forms.py, urls.py, navigation.py, template_content.py,
   api/{serializers.py, views.py, urls.py}, migrations/, jobs/, tests/}
 - NautobotAppConfig subclass in __init__.py registering the app (name,
@@ -88,13 +150,14 @@ EOF
 )"
 
 create_issue "M0: GitHub Actions CI workflow with Postgres/Redis service containers" \
-  "claude-go,milestone:M0,lane:unattended" \
+  "claude-go,lane:unattended" \
+  "M0: Repo scaffolding & CI foundation" \
   "$(cat <<'EOF'
 Add a GitHub Actions workflow (.github/workflows/test.yml) that:
 - Spins up Postgres 16 and Redis 7 as service containers
 - Installs Python 3.12, Nautobot, and this app's dependencies
 - Runs `nautobot-server migrate` against the service containers
-- Runs `nautobot-server test nautobot_pytest_compliance`
+- Runs `nautobot-server test nautobot_pytest_compliance_rule_engine`
 - Triggers on push and pull_request
 
 At this stage the app has no models/tests yet, so the test run should pass
@@ -107,9 +170,10 @@ EOF
 )"
 
 create_issue "M0: Packaging, lint config, and pre-commit hooks" \
-  "claude-go,milestone:M0,lane:unattended" \
+  "claude-go,lane:unattended" \
+  "M0: Repo scaffolding & CI foundation" \
   "$(cat <<'EOF'
-Finalize packaging and code quality tooling for nautobot-pytest-compliance:
+Finalize packaging and code quality tooling for nautobot-pytest-compliance-rule-engine:
 - Complete pyproject.toml (build system, dependencies, dev-dependencies:
   pytest, black, ruff)
 - Add .pre-commit-config.yaml with black and ruff hooks
@@ -125,9 +189,10 @@ EOF
 # ---------------------------------------------------------------------------
 
 create_issue "M1: ComplianceRule model" \
-  "claude-go,milestone:M1,lane:unattended" \
+  "claude-go,lane:unattended" \
+  "M1: Data models" \
   "$(cat <<'EOF'
-Add a ComplianceRule model to nautobot_pytest_compliance/models.py:
+Add a ComplianceRule model to nautobot_pytest_compliance_rule_engine/models.py:
 
 Fields:
 - name (CharField, unique)
@@ -150,9 +215,10 @@ EOF
 )"
 
 create_issue "M1: ComplianceTestResult model" \
-  "claude-go,milestone:M1,lane:unattended" \
+  "claude-go,lane:unattended" \
+  "M1: Data models" \
   "$(cat <<'EOF'
-Add a ComplianceTestResult model to nautobot_pytest_compliance/models.py:
+Add a ComplianceTestResult model to nautobot_pytest_compliance_rule_engine/models.py:
 
 Fields:
 - rule (ForeignKey to ComplianceRule, on_delete=CASCADE)
@@ -173,9 +239,10 @@ EOF
 )"
 
 create_issue "M1: ComplianceRuleSet model" \
-  "claude-go,milestone:M1,lane:unattended" \
+  "claude-go,lane:unattended" \
+  "M1: Data models" \
   "$(cat <<'EOF'
-Add a ComplianceRuleSet model to nautobot_pytest_compliance/models.py:
+Add a ComplianceRuleSet model to nautobot_pytest_compliance_rule_engine/models.py:
 
 Fields:
 - name (CharField, unique)
@@ -194,7 +261,8 @@ EOF
 )"
 
 create_issue "M1: Model layer test coverage review" \
-  "claude-go,milestone:M1,lane:unattended" \
+  "claude-go,lane:unattended" \
+  "M1: Data models" \
   "$(cat <<'EOF'
 Review all three models added in the prior M1 issues together. Add any
 missing test coverage:
@@ -204,7 +272,7 @@ missing test coverage:
 - ComplianceRuleSet with zero rules is valid
 - Querying ComplianceTestResult filtered by rule severity (via the FK)
 
-Confirm `nautobot-server test nautobot_pytest_compliance` passes fully in
+Confirm `nautobot-server test nautobot_pytest_compliance_rule_engine` passes fully in
 CI (this is the first issue where the M0 CI pipeline should show real test
 counts, not zero).
 EOF
@@ -215,9 +283,10 @@ EOF
 # ---------------------------------------------------------------------------
 
 create_issue "M2: Static validation (ast.parse) for rule_code safety" \
-  "claude-go,milestone:M2,model:opus,lane:interactive" \
+  "claude-go,model:opus,lane:interactive" \
+  "M2: Sandboxed rule execution engine" \
   "$(cat <<'EOF'
-Add a validation function (nautobot_pytest_compliance/validation.py) that
+Add a validation function (nautobot_pytest_compliance_rule_engine/validation.py) that
 runs at ComplianceRule save-time (override clean() or save()) to statically
 reject unsafe rule_code before it's ever persisted or executed.
 
@@ -248,9 +317,10 @@ EOF
 )"
 
 create_issue "M2: Restricted-namespace execution engine" \
-  "claude-go,milestone:M2,model:opus,lane:interactive" \
+  "claude-go,model:opus,lane:interactive" \
+  "M2: Sandboxed rule execution engine" \
   "$(cat <<'EOF'
-Add an execution engine (nautobot_pytest_compliance/engine.py) that takes a
+Add an execution engine (nautobot_pytest_compliance_rule_engine/engine.py) that takes a
 validated ComplianceRule (already passed the static ast.parse() check) plus
 a `configuration` string and/or `commands` dict, and executes the rule_code
 in a restricted namespace.
@@ -278,7 +348,8 @@ EOF
 )"
 
 create_issue "M2: Sandboxing design doc / ADR" \
-  "claude-go,milestone:M2,lane:interactive" \
+  "claude-go,lane:interactive" \
+  "M2: Sandboxed rule execution engine" \
   "$(cat <<'EOF'
 Before the execution engine issue is merged, write a design doc
 (docs/adr/0001-rule-sandboxing.md, following an Architecture Decision Record
@@ -307,9 +378,10 @@ EOF
 # ---------------------------------------------------------------------------
 
 create_issue "M3: RunComplianceRules Job — input form" \
-  "claude-go,milestone:M3,lane:unattended" \
+  "claude-go,lane:unattended" \
+  "M3: Job execution & device data gathering" \
   "$(cat <<'EOF'
-Create a Nautobot Job (nautobot_pytest_compliance/jobs/run_compliance.py)
+Create a Nautobot Job (nautobot_pytest_compliance_rule_engine/jobs/run_compliance.py)
 called RunComplianceRules with an input form (using Nautobot's Job
 variables/ScriptVariable pattern) that accepts:
 - device_queryset filters: site, role, platform, tag (use Nautobot's
@@ -327,9 +399,10 @@ EOF
 )"
 
 create_issue "M3: Optional Golden Config integration" \
-  "claude-go,milestone:M3,lane:unattended" \
+  "claude-go,lane:unattended" \
+  "M3: Job execution & device data gathering" \
   "$(cat <<'EOF'
-Add a helper function (nautobot_pytest_compliance/integrations/golden_config.py)
+Add a helper function (nautobot_pytest_compliance_rule_engine/integrations/golden_config.py)
 that, given a Device, attempts to pull its latest backed-up configuration
 from the Golden Config app (nautobot-plugin-golden-config) if that app is
 installed.
@@ -350,9 +423,10 @@ EOF
 )"
 
 create_issue "M3: Live device data gathering (NAPALM/Netmiko)" \
-  "claude-go,milestone:M3,lane:unattended" \
+  "claude-go,lane:unattended" \
+  "M3: Job execution & device data gathering" \
   "$(cat <<'EOF'
-Add a helper function (nautobot_pytest_compliance/integrations/live_device.py)
+Add a helper function (nautobot_pytest_compliance_rule_engine/integrations/live_device.py)
 that, given a Device with valid Nautobot-stored credentials/secrets, gathers
 a `commands` dict of live show-command output using NAPALM or Netmiko
 (match whichever library convention is already used elsewhere in similar
@@ -374,7 +448,8 @@ EOF
 )"
 
 create_issue "M3: Wire execution engine into the Job" \
-  "claude-go,milestone:M3,model:opus,lane:unattended" \
+  "claude-go,model:opus,lane:unattended" \
+  "M3: Job execution & device data gathering" \
   "$(cat <<'EOF'
 Complete the RunComplianceRules Job's run() method by wiring together:
 - The resolved device queryset and rule_set from the input form issue
@@ -403,7 +478,8 @@ EOF
 )"
 
 create_issue "M3: End-to-end Job integration test suite" \
-  "claude-go,milestone:M3,lane:unattended" \
+  "claude-go,lane:unattended" \
+  "M3: Job execution & device data gathering" \
   "$(cat <<'EOF'
 Add a comprehensive integration test suite (tests/test_job_integration.py)
 that exercises the full RunComplianceRules Job end-to-end using Nautobot's
@@ -416,7 +492,7 @@ confirming correct pass/fail/error counts; a device matching zero rules in
 the set (edge case); a rule_set with zero rules (edge case, should complete
 with zero results, not error).
 
-Confirm nautobot-server test nautobot_pytest_compliance passes fully in the
+Confirm nautobot-server test nautobot_pytest_compliance_rule_engine passes fully in the
 GitHub Actions CI pipeline (Postgres/Redis service containers from M0).
 EOF
 )"
@@ -426,7 +502,8 @@ EOF
 # ---------------------------------------------------------------------------
 
 create_issue "M4: List/detail/edit/delete views for ComplianceRule and ComplianceRuleSet" \
-  "claude-go,milestone:M4,lane:unattended" \
+  "claude-go,lane:unattended" \
+  "M4: Views & UI" \
   "$(cat <<'EOF'
 Add standard Nautobot UI views for ComplianceRule and ComplianceRuleSet
 following Nautobot's generic view pattern (ObjectListView, ObjectView,
@@ -452,7 +529,8 @@ EOF
 )"
 
 create_issue "M4: Filterable ComplianceTestResult results table" \
-  "claude-go,milestone:M4,lane:unattended" \
+  "claude-go,lane:unattended" \
+  "M4: Views & UI" \
   "$(cat <<'EOF'
 Add a read-only list view for ComplianceTestResult (no edit/delete — these
 are system-generated) with:
@@ -469,7 +547,8 @@ EOF
 )"
 
 create_issue "M4: Device detail page tab injection" \
-  "claude-go,milestone:M4,lane:unattended" \
+  "claude-go,lane:unattended" \
+  "M4: Views & UI" \
   "$(cat <<'EOF'
 Use Nautobot's template_content.py extension mechanism to inject a new tab
 ("Compliance") onto the Device detail page, showing that device's most
@@ -488,7 +567,8 @@ EOF
 )"
 
 create_issue "M4: Dashboard summary widget" \
-  "claude-go,milestone:M4,lane:unattended" \
+  "claude-go,lane:unattended" \
+  "M4: Views & UI" \
   "$(cat <<'EOF'
 Add a dashboard view/widget summarizing compliance state across the whole
 fleet:
@@ -512,7 +592,8 @@ EOF
 # ---------------------------------------------------------------------------
 
 create_issue "M5: REST API — ComplianceRule and ComplianceRuleSet CRUD" \
-  "claude-go,milestone:M5,lane:unattended" \
+  "claude-go,lane:unattended" \
+  "M5: REST API" \
   "$(cat <<'EOF'
 Add REST API serializers and ViewSets (api/serializers.py, api/views.py,
 api/urls.py) for full CRUD on ComplianceRule and ComplianceRuleSet,
@@ -529,7 +610,8 @@ EOF
 )"
 
 create_issue "M5: Read-only ComplianceTestResult API endpoint" \
-  "claude-go,milestone:M5,lane:unattended" \
+  "claude-go,lane:unattended" \
+  "M5: REST API" \
   "$(cat <<'EOF'
 Add a read-only REST API endpoint for ComplianceTestResult (list + detail,
 no create/update/delete since these are system-generated) with filtering
@@ -543,7 +625,8 @@ EOF
 )"
 
 create_issue "M5: Job trigger API endpoint" \
-  "claude-go,milestone:M5,lane:unattended" \
+  "claude-go,lane:unattended" \
+  "M5: REST API" \
   "$(cat <<'EOF'
 Add a POST endpoint (e.g. /api/plugins/pytest-compliance/run/) that accepts
 the same inputs as the RunComplianceRules Job form (device filters,
@@ -564,7 +647,8 @@ EOF
 )"
 
 create_issue "M5: API integration test suite" \
-  "claude-go,milestone:M5,lane:unattended" \
+  "claude-go,lane:unattended" \
+  "M5: REST API" \
   "$(cat <<'EOF'
 Review the full M5 API surface together and add any missing integration
 test coverage — particularly: an end-to-end API flow (create a
@@ -583,7 +667,8 @@ EOF
 # ---------------------------------------------------------------------------
 
 create_issue "M6: Example ComplianceRule fixtures" \
-  "claude-go,milestone:M6,lane:unattended" \
+  "claude-go,lane:unattended" \
+  "M6: Example rules & seed data" \
   "$(cat <<'EOF'
 Create 3-5 example ComplianceRule fixture entries (as a Django fixture JSON
 file or a data migration, whichever fits Nautobot app conventions better)
@@ -606,7 +691,8 @@ EOF
 )"
 
 create_issue "M6: Seed data loading Job" \
-  "claude-go,milestone:M6,lane:unattended" \
+  "claude-go,lane:unattended" \
+  "M6: Example rules & seed data" \
   "$(cat <<'EOF'
 Add a Job (jobs/load_example_rules.py) that loads the example
 ComplianceRule fixtures into the database, for users who want to try the
@@ -626,7 +712,8 @@ EOF
 # ---------------------------------------------------------------------------
 
 create_issue "M7: README and documentation" \
-  "claude-go,milestone:M7,lane:unattended" \
+  "claude-go,lane:unattended" \
+  "M7: Documentation & release" \
   "$(cat <<'EOF'
 Complete README.md with:
 - One-paragraph description of what the app does and why (reference the
@@ -651,7 +738,8 @@ EOF
 )"
 
 create_issue "M7: Changelog and release tagging" \
-  "claude-go,milestone:M7,lane:unattended" \
+  "claude-go,lane:unattended" \
+  "M7: Documentation & release" \
   "$(cat <<'EOF'
 Add a CHANGELOG.md following Keep a Changelog format, summarizing the
 features delivered across M0-M7 as a v0.1.0 entry (data models, sandboxed
@@ -665,13 +753,14 @@ EOF
 
 create_issue "M7 (Manual): Install into WSL Nautobot instance" \
   "manual,lane:manual" \
+  "M7: Documentation & release" \
   "$(cat <<'EOF'
 NOT for unattended pipeline — this is a manual task for you (Mick) to
 perform once the v0.1.0 release is tagged:
 
 1. pip install the release (or `pip install -e .` from a local clone) into
    your WSL2 ubuntu24-claude Nautobot instance
-2. Add nautobot_pytest_compliance to PLUGINS in nautobot_config.py
+2. Add nautobot_pytest_compliance_rule_engine to PLUGINS in nautobot_config.py
 3. Run migrations
 4. Run the "Load Example Compliance Rules" Job to seed test data
 5. Manually verify: UI views render, device tab shows results after running
@@ -689,7 +778,8 @@ EOF
 # ---------------------------------------------------------------------------
 
 create_issue "M8 (Stretch): containerlab live validation harness" \
-  "claude-go,milestone:M8,model:opus,lane:interactive" \
+  "claude-go,model:opus,lane:interactive" \
+  "M8: Stretch — live device validation" \
   "$(cat <<'EOF'
 Build a containerlab-based integration test harness (reuse patterns from
 your existing frr01 or cve-demo containerlab projects) that stands up a
@@ -714,7 +804,8 @@ EOF
 )"
 
 create_issue "M8 (Stretch): Document self-hosted runner requirement" \
-  "claude-go,milestone:M8,lane:unattended" \
+  "claude-go,lane:unattended" \
+  "M8: Stretch — live device validation" \
   "$(cat <<'EOF'
 Add a docs/live-validation.md explaining clearly:
 - Why the containerlab harness can't run on GitHub-hosted runners (no
@@ -730,6 +821,7 @@ This is documentation only — no code changes.
 EOF
 )"
 
-echo "==> Done. Created 30 issues in $REPO."
-echo "==> Review the milestone:M2 and milestone:M8 issues (labeled lane:interactive) —"
+echo "==> Done. Created 30 issues across 9 milestones in $REPO."
+echo "==> Review the M2 and M8 milestone issues (labeled lane:interactive) —"
 echo "    these are recommended to drive yourself via Lane A rather than the claude-go pipeline."
+echo "==> Milestones: https://github.com/$REPO/milestones"
