@@ -81,7 +81,9 @@ jobs:
           # do NOT trigger other workflows, so CI would silently never run on
           # Claude's PRs. Falls back to GITHUB_TOKEN until PAT_TOKEN is set.
           github_token: ${{ secrets.PAT_TOKEN || secrets.GITHUB_TOKEN }}
-          track_progress: true
+          # track_progress is only valid for issue/PR-triggered events — the
+          # action hard-fails on workflow_dispatch if it is set.
+          track_progress: ${{ github.event_name != 'workflow_dispatch' }}
           base_branch: master
           prompt: |
             Implement issue #${{ steps.cfg.outputs.number }} in this repository.
