@@ -72,7 +72,11 @@ jobs:
 
       - uses: anthropics/claude-code-action@v1
         with:
-          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          # Authenticates against the Claude Max subscription, NOT pay-per-token
+          # API billing. `anthropic_api_key` is deliberately NOT set here: it
+          # bills API usage separately from the subscription, so setting it
+          # would mean paying twice. Mint this token with `claude setup-token`.
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           # Prefer a PAT when present: PRs opened with the default GITHUB_TOKEN
           # do NOT trigger other workflows, so CI would silently never run on
           # Claude's PRs. Falls back to GITHUB_TOKEN until PAT_TOKEN is set.
