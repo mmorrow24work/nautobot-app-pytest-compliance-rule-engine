@@ -1,0 +1,98 @@
+name: test
+
+# CI for nautobot-app-pytest-compliance-rule-engine.
+#
+# Spins up Postgres/Redis as service containers, installs the app into a
+# Nautobot instance, and runs the Django/Nautobot test suite. At M0 the app
+# ships no models or tests, so `nautobot-server test` is expected to collect
+# zero tests and exit 0 -- the goal here is a green pipeline to build on.
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: nautobot
+          POSTGRES_PASSWORD: nautobot
+          POSTGRES_DB: nautobot
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U nautobot"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+      redis:
+        image: redis:7
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    env:
+      NAUTOBOT_CONFIG: ${{ github.workspace }}/nautobot_config.py
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install Poetry
+        run: pipx install poetry
+
+      - name: Install app and dependencies
+        run: poetry install --no-interaction
+
+      - name: Generate Nautobot config
+        run: |
+          cat > "$NAUTOBOT_CONFIG" <<'EOF'
+          from nautobot.core.settings import *  # noqa: F401,F403
+
+          ALLOWED_HOSTS = ["*"]
+          SECRET_KEY = "test-secret-key-not-for-production-use-0000000000000000"
+
+          DATABASES = {
+              "default": {
+                  "NAME": "nautobot",
+                  "USER": "nautobot",
+                  "PASSWORD": "nautobot",
+                  "HOST": "localhost",
+                  "PORT": "5432",
+                  "ENGINE": "django.db.backends.postgresql",
+              }
+          }
+
+          CACHES = {
+              "default": {
+                  "BACKEND": "django_redis.cache.RedisCache",
+                  "LOCATION": "redis://localhost:6379/0",
+                  "OPTIONS": {
+                      "CLIENT_CLASS": "django_redis.client.DefaultClient",
+                  },
+              }
+          }
+
+          PLUGINS = ["nautobot_pytest_compliance_rule_engine"]
+          EOF
+
+      - name: Run migrations
+        run: poetry run nautobot-server migrate
+
+      - name: Run tests
+        run: poetry run nautobot-server test nautobot_pytest_compliance_rule_engine
