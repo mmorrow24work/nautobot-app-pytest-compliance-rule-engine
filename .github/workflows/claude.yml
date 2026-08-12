@@ -70,7 +70,12 @@ jobs:
             echo "model=claude-sonnet-5" >> "$GITHUB_OUTPUT"
           fi
 
+      - name: Record start time
+        id: timer
+        run: echo "start=$(date +%s)" >> "$GITHUB_OUTPUT"
+
       - uses: anthropics/claude-code-action@v1
+        id: claude
         with:
           # Authenticates against the Claude Max subscription, NOT pay-per-token
           # API billing. `anthropic_api_key` is deliberately NOT set here: it
@@ -106,3 +111,35 @@ jobs:
             --model ${{ steps.cfg.outputs.model }}
             --max-turns 200
             --allowedTools "Bash(poetry:*),Bash(pip:*),Bash(python:*),Bash(pytest:*),Bash(nautobot-server:*),Bash(ruff:*),Bash(black:*),Bash(pre-commit:*),Bash(ls:*),Bash(cat:*),Edit,Read,Write,Glob,Grep"
+
+      # --- Journal capture -------------------------------------------------
+      # Both steps run with always() so failed and turn-capped runs are
+      # recorded too — execution_file is written before the action raises its
+      # terminal error, so those runs still carry full metrics.
+
+      - name: Upload execution transcript
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: transcript-issue-${{ steps.cfg.outputs.number }}-run-${{ github.run_id }}
+          path: ${{ steps.claude.outputs.execution_file }}
+          if-no-files-found: warn
+          retention-days: 90
+
+      - name: Append journal entry
+        if: always()
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          ISSUE_NUMBER: ${{ steps.cfg.outputs.number }}
+          MODEL: ${{ steps.cfg.outputs.model }}
+          RESULT: ${{ steps.claude.outcome }}
+          EXECUTION_FILE: ${{ steps.claude.outputs.execution_file }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          START: ${{ steps.timer.outputs.start }}
+        run: |
+          export DURATION=$(( $(date +%s) - START ))
+          export ISSUE_TITLE=$(gh issue view "$ISSUE_NUMBER" --repo "$GITHUB_REPOSITORY" --json title --jq .title)
+          export MILESTONE=$(gh issue view "$ISSUE_NUMBER" --repo "$GITHUB_REPOSITORY" --json milestone --jq '.milestone.title // "—"')
+          export PR_REF=$(gh pr list --repo "$GITHUB_REPOSITORY" --search "linked:issue-$ISSUE_NUMBER" --json number --jq 'if length>0 then "#\(.[0].number)" else "—" end' 2>/dev/null || echo "—")
+          bash .github/scripts/journal-entry.sh
