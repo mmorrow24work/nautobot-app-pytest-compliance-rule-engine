@@ -1,0 +1,46 @@
+[tool.poetry]
+name = "nautobot-pytest-compliance-rule-engine"
+version = "0.1.0"
+description = "A Nautobot App providing a pytest-style compliance rule engine: define compliance rules as Python snippets and run them against device data as a Nautobot Job."
+authors = ["Mick Morrow"]
+classifiers = [
+    "Intended Audience :: Developers",
+    "Development Status :: 3 - Alpha",
+    "Framework :: Django",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+]
+keywords = ["nautobot", "nautobot-app", "compliance", "pytest"]
+packages = [
+    { include = "nautobot_pytest_compliance_rule_engine" },
+]
+
+[tool.poetry.dependencies]
+python = ">=3.9,<3.13"
+nautobot = "^2.0.0"
+
+[tool.poetry.group.dev.dependencies]
+black = "*"
+ruff = "*"
+
+[tool.poetry.plugins."nautobot.plugins"]
+"nautobot_pytest_compliance_rule_engine" = "nautobot_pytest_compliance_rule_engine:config"
+
+[build-system]
+requires = ["poetry-core>=1.9.0"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.black]
+line-length = 120
+target-version = ["py39", "py310", "py311", "py312"]
+include = '\.pyi?$'
+
+[tool.ruff]
+line-length = 120
+target-version = "py39"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I"]
