@@ -86,6 +86,25 @@ jobs:
             echo "model=claude-sonnet-5" >> "$GITHUB_OUTPUT"
           fi
 
+      # Give the agent a real Nautobot to introspect. Without this the runner
+      # has no nautobot package and pip is sandbox-blocked, so every
+      # Nautobot-specific API decision is an unverifiable guess — issue #4
+      # needed three runs to land because `TagsField`'s module and a migration
+      # dependency name could only be checked by pushing and reading CI.
+      # Mirrors test.yml's setup; ~2 min, versus a full agent run + CI cycle
+      # per wrong guess.
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install Poetry
+        run: pipx install poetry
+
+      - name: Install app and dependencies
+        continue-on-error: true
+        run: poetry install --no-interaction
+
       - name: Record start time
         id: timer
         run: echo "start=$(date +%s)" >> "$GITHUB_OUTPUT"
@@ -121,6 +140,20 @@ jobs:
             You are running unattended. Nobody can approve a tool call or
             answer a question mid-run, so asking will simply end the run with
             nothing done. Work with the tools you have.
+
+            Nautobot and this app's dependencies are installed in a poetry
+            virtualenv on this runner. Verify Nautobot APIs against the
+            installed package rather than assuming them — check what a module
+            actually exports, what a base class already provides, and which
+            migrations really exist, before you rely on any of it. For example:
+
+                poetry run python -c "import nautobot.apps.models as m; print(dir(m))"
+                poetry run python -c "import nautobot.dcim, os; print(os.listdir(os.path.dirname(nautobot.dcim.__file__) + '/migrations'))"
+
+            Guessed imports and hard-coded migration names have failed CI on
+            this repo before. There is no Postgres or Redis here, so anything
+            needing a database (migrate, test) still belongs to CI — but
+            imports, exports, and file layout are all checkable locally.
 
             Implement the issue per its acceptance criteria, touching only files
             named in the issue or in CLAUDE.md's repo map. This is a Nautobot
