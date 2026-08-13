@@ -73,12 +73,12 @@ Recomputed from every entry below on each run.
 <!-- VELOCITY_START -->
 | Metric | Value |
 |---|---|
-| Issues with recorded metrics | 11 |
-| Successful runs | 11 |
-| Mean time per issue | 4m 40s |
-| Mean turns per issue | 74 |
-| Mean output tokens per issue | 19,665 |
-| Mean estimated cost per issue | $0.2957 |
+| Issues with recorded metrics | 12 |
+| Successful runs | 12 |
+| Mean time per issue | 4m 49s |
+| Mean turns per issue | 73 |
+| Mean output tokens per issue | 20,392 |
+| Mean estimated cost per issue | $0.3303 |
 <!-- VELOCITY_END -->
 
 ---
@@ -230,3 +230,16 @@ Recomputed from every entry below on each run.
 - **Output Tokens:** 8018
 - **Estimated Cost:** $0.1205 (notional — see above)
 - **Run:** https://github.com/mmorrow24work/nautobot-app-pytest-compliance-rule-engine/actions/runs/31683741815
+
+## 2026-08-13 — Issue #8: M2: Static validation (ast.parse) for rule_code safety
+
+- **Result:** success
+- **PR:** #39
+- **Milestone:** M2: Sandboxed rule execution engine
+- **Model:** claude-opus-5
+- **Execution Duration:** 393 seconds
+- **Turns:** 59
+- **Input Tokens:** 168
+- **Output Tokens:** 28393
+- **Estimated Cost:** $0.7107 (notional — see above)
+- **Run:** https://github.com/mmorrow24work/nautobot-app-pytest-compliance-rule-engine/actions/runs/31686977928
