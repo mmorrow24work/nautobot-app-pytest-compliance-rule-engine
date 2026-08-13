@@ -3,9 +3,7 @@ name: test
 # CI for nautobot-app-pytest-compliance-rule-engine.
 #
 # Spins up Postgres/Redis as service containers, installs the app into a
-# Nautobot instance, and runs the Django/Nautobot test suite. At M0 the app
-# ships no models or tests, so `nautobot-server test` is expected to collect
-# zero tests and exit 0 -- the goal here is a green pipeline to build on.
+# Nautobot instance, and runs the Django/Nautobot test suite.
 
 on:
   push:

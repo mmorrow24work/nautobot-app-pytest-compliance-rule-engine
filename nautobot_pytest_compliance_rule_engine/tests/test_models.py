@@ -178,6 +178,53 @@ class ComplianceTestResultModelTest(TestCase):
 
         self.assertEqual(list(ComplianceTestResult.objects.all()), [newer, older])
 
+    def test_deleting_rule_cascades_to_test_results(self):
+        """Deleting a ComplianceRule deletes its ComplianceTestResults."""
+        result = ComplianceTestResult.objects.create(
+            rule=self.rule,
+            device=self.device,
+            status=ComplianceTestResultStatusChoices.PASS,
+        )
+
+        self.rule.delete()
+
+        self.assertFalse(ComplianceTestResult.objects.filter(pk=result.pk).exists())
+
+    def test_deleting_device_cascades_to_test_results(self):
+        """Deleting a Device deletes its ComplianceTestResults."""
+        result = ComplianceTestResult.objects.create(
+            rule=self.rule,
+            device=self.device,
+            status=ComplianceTestResultStatusChoices.PASS,
+        )
+
+        self.device.delete()
+
+        self.assertFalse(ComplianceTestResult.objects.filter(pk=result.pk).exists())
+
+    def test_filter_by_rule_severity(self):
+        """ComplianceTestResults can be queried by their rule's severity via the FK."""
+        high_severity_rule = ComplianceRule.objects.create(
+            name="Require SNMP community",
+            severity=ComplianceRuleSeverityChoices.HIGH,
+            rule_code="def test_snmp(device):\n    assert device.snmp_community",
+        )
+        low_severity_result = ComplianceTestResult.objects.create(
+            rule=self.rule,
+            device=self.device,
+            status=ComplianceTestResultStatusChoices.PASS,
+        )
+        high_severity_result = ComplianceTestResult.objects.create(
+            rule=high_severity_rule,
+            device=self.device,
+            status=ComplianceTestResultStatusChoices.FAIL,
+        )
+
+        high_severity_results = ComplianceTestResult.objects.filter(rule__severity=ComplianceRuleSeverityChoices.HIGH)
+
+        self.assertIn(high_severity_result, high_severity_results)
+        self.assertNotIn(low_severity_result, high_severity_results)
+
 
 class ComplianceRuleSetModelTest(TestCase):
     """Tests for ComplianceRuleSet model behavior."""
@@ -203,6 +250,14 @@ class ComplianceRuleSetModelTest(TestCase):
 
         self.assertEqual(rule_set.name, "CIS Cisco IOS Hardening")
         self.assertEqual(rule_set.description, "Rules enforcing CIS benchmarks for Cisco IOS devices.")
+        self.assertEqual(rule_set.rules.count(), 0)
+
+    def test_rule_set_with_zero_rules_is_valid(self):
+        """A ComplianceRuleSet with no rules passes full_clean and can be saved."""
+        rule_set = ComplianceRuleSet(name="Empty rule set")
+        rule_set.full_clean()
+        rule_set.save()
+
         self.assertEqual(rule_set.rules.count(), 0)
 
     def test_str_returns_name(self):
