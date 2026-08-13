@@ -1,10 +1,13 @@
 """Models for nautobot_pytest_compliance_rule_engine."""
 
+from django.core.exceptions import ValidationError
 from django.db import models
 from nautobot.apps.choices import ChoiceSet
 from nautobot.apps.models import BaseModel, PrimaryModel
 from nautobot.dcim.models import Device, Platform
 from nautobot.extras.models import JobResult
+
+from nautobot_pytest_compliance_rule_engine.validation import validate_rule_code
 
 
 class ComplianceRuleSeverityChoices(ChoiceSet):
@@ -46,6 +49,20 @@ class ComplianceRule(PrimaryModel):
         """Meta options for ComplianceRule."""
 
         ordering = ["name"]
+
+    def clean(self):
+        """Statically reject unsafe rule_code before the rule can be saved.
+
+        Runs wherever `full_clean()` runs -- forms, API serializers, and
+        `validated_save()`. A direct `objects.create()` bypasses it; see the
+        limitations documented in `validation.py`.
+        """
+        super().clean()
+        try:
+            validate_rule_code(self.rule_code)
+        except ValidationError as exc:
+            # Re-key onto the field so forms and serializers show the error against rule_code.
+            raise ValidationError({"rule_code": exc.messages}) from exc
 
     def __str__(self):
         """Return the rule's name."""
