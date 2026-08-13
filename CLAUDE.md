@@ -40,6 +40,13 @@ Touch only files named in the issue you are implementing or listed above. In
 particular, do not edit `build/create-nautobot-issues.sh` or
 `.github/workflows/claude.yml` unless the issue is explicitly about them.
 
+**The map above is exhaustive — do not add modules that are not on it.**
+Specifically, **do not create `admin.py`**. Nautobot surfaces models through
+its own UI (views, tables, filters, navigation), which M4 delivers; a Django
+admin registration is not part of this app and would sit unused. This has been
+added and removed twice already — if a model feels like it needs admin
+registration, it does not.
+
 ## Milestones
 
 Issues are grouped M0–M8 and are ordered by dependency. If your issue depends
