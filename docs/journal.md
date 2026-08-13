@@ -73,12 +73,12 @@ Recomputed from every entry below on each run.
 <!-- VELOCITY_START -->
 | Metric | Value |
 |---|---|
-| Issues with recorded metrics | 9 |
-| Successful runs | 9 |
-| Mean time per issue | 5m 15s |
-| Mean turns per issue | 83 |
-| Mean output tokens per issue | 22,175 |
-| Mean estimated cost per issue | $0.3334 |
+| Issues with recorded metrics | 10 |
+| Successful runs | 10 |
+| Mean time per issue | 4m 56s |
+| Mean turns per issue | 79 |
+| Mean output tokens per issue | 20,829 |
+| Mean estimated cost per issue | $0.3132 |
 <!-- VELOCITY_END -->
 
 ---
@@ -204,3 +204,16 @@ Recomputed from every entry below on each run.
 - **Output Tokens:** 33634
 - **Estimated Cost:** $0.5060 (notional — see above)
 - **Run:** https://github.com/mmorrow24work/nautobot-app-pytest-compliance-rule-engine/actions/runs/31665159026
+
+## 2026-08-13 — Issue #7: M1: Model layer test coverage review
+
+- **Result:** success
+- **PR:** #37
+- **Milestone:** M1: Data models
+- **Model:** claude-sonnet-5
+- **Execution Duration:** 127 seconds
+- **Turns:** 41
+- **Input Tokens:** 132
+- **Output Tokens:** 8721
+- **Estimated Cost:** $0.1312 (notional — see above)
+- **Run:** https://github.com/mmorrow24work/nautobot-app-pytest-compliance-rule-engine/actions/runs/31665981001
