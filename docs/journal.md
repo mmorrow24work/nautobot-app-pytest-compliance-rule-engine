@@ -73,12 +73,12 @@ Recomputed from every entry below on each run.
 <!-- VELOCITY_START -->
 | Metric | Value |
 |---|---|
-| Issues with recorded metrics | 10 |
-| Successful runs | 10 |
-| Mean time per issue | 4m 56s |
-| Mean turns per issue | 79 |
-| Mean output tokens per issue | 20,829 |
-| Mean estimated cost per issue | $0.3132 |
+| Issues with recorded metrics | 11 |
+| Successful runs | 11 |
+| Mean time per issue | 4m 40s |
+| Mean turns per issue | 74 |
+| Mean output tokens per issue | 19,665 |
+| Mean estimated cost per issue | $0.2957 |
 <!-- VELOCITY_END -->
 
 ---
@@ -217,3 +217,16 @@ Recomputed from every entry below on each run.
 - **Output Tokens:** 8721
 - **Estimated Cost:** $0.1312 (notional — see above)
 - **Run:** https://github.com/mmorrow24work/nautobot-app-pytest-compliance-rule-engine/actions/runs/31665981001
+
+## 2026-08-13 — Issue #10: M2: Sandboxing design doc / ADR
+
+- **Result:** success
+- **PR:** #38
+- **Milestone:** M2: Sandboxed rule execution engine
+- **Model:** claude-sonnet-5
+- **Execution Duration:** 119 seconds
+- **Turns:** 25
+- **Input Tokens:** 80
+- **Output Tokens:** 8018
+- **Estimated Cost:** $0.1205 (notional — see above)
+- **Run:** https://github.com/mmorrow24work/nautobot-app-pytest-compliance-rule-engine/actions/runs/31683741815
