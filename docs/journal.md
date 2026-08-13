@@ -73,12 +73,12 @@ Recomputed from every entry below on each run.
 <!-- VELOCITY_START -->
 | Metric | Value |
 |---|---|
-| Issues with recorded metrics | 19 |
-| Successful runs | 19 |
-| Mean time per issue | 5m 58s |
-| Mean turns per issue | 90 |
-| Mean output tokens per issue | 24,401 |
-| Mean estimated cost per issue | $0.4040 |
+| Issues with recorded metrics | 20 |
+| Successful runs | 20 |
+| Mean time per issue | 6m 18s |
+| Mean turns per issue | 92 |
+| Mean output tokens per issue | 26,025 |
+| Mean estimated cost per issue | $0.4550 |
 <!-- VELOCITY_END -->
 
 ---
@@ -334,3 +334,16 @@ Recomputed from every entry below on each run.
 - **Output Tokens:** 28173
 - **Estimated Cost:** $0.4240 (notional — see above)
 - **Run:** https://github.com/mmorrow24work/nautobot-app-pytest-compliance-rule-engine/actions/runs/31753348611
+
+## 2026-08-13 — Issue #14: M3: Wire execution engine into the Job
+
+- **Result:** success
+- **PR:** #46
+- **Milestone:** M3: Job execution & device data gathering
+- **Model:** claude-opus-5
+- **Execution Duration:** 764 seconds
+- **Turns:** 142
+- **Input Tokens:** 433
+- **Output Tokens:** 56886
+- **Estimated Cost:** $1.4243 (notional — see above)
+- **Run:** https://github.com/mmorrow24work/nautobot-app-pytest-compliance-rule-engine/actions/runs/31754222026
