@@ -2,6 +2,7 @@
 
 from nautobot.apps.api import NautobotModelViewSet
 
+from nautobot_pytest_compliance_rule_engine.filters import ComplianceRuleFilterSet, ComplianceRuleSetFilterSet
 from nautobot_pytest_compliance_rule_engine.models import ComplianceRule, ComplianceRuleSet
 
 from . import serializers
@@ -17,6 +18,7 @@ class ComplianceRuleViewSet(NautobotModelViewSet):
 
     queryset = ComplianceRule.objects.all()
     serializer_class = serializers.ComplianceRuleSerializer
+    filterset_class = ComplianceRuleFilterSet
 
 
 class ComplianceRuleSetViewSet(NautobotModelViewSet):
@@ -29,3 +31,4 @@ class ComplianceRuleSetViewSet(NautobotModelViewSet):
 
     queryset = ComplianceRuleSet.objects.all()
     serializer_class = serializers.ComplianceRuleSetSerializer
+    filterset_class = ComplianceRuleSetFilterSet
