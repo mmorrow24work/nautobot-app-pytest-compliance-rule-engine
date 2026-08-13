@@ -2,8 +2,9 @@
 
 from django.db import models
 from nautobot.apps.choices import ChoiceSet
-from nautobot.apps.models import PrimaryModel
-from nautobot.dcim.models import Platform
+from nautobot.apps.models import BaseModel, PrimaryModel
+from nautobot.dcim.models import Device, Platform
+from nautobot.extras.models import JobResult
 
 
 class ComplianceRuleSeverityChoices(ChoiceSet):
@@ -49,3 +50,57 @@ class ComplianceRule(PrimaryModel):
     def __str__(self):
         """Return the rule's name."""
         return self.name
+
+
+class ComplianceTestResultStatusChoices(ChoiceSet):
+    """Outcome of running a ComplianceRule against a Device."""
+
+    PASS = "pass"
+    FAIL = "fail"
+    ERROR = "error"
+
+    CHOICES = (
+        (PASS, "Pass"),
+        (FAIL, "Fail"),
+        (ERROR, "Error"),
+    )
+
+
+class ComplianceTestResult(BaseModel):
+    """The recorded outcome of running a single ComplianceRule against a single Device.
+
+    Created by the RunComplianceRules Job (M3); not intended to be created or edited via UI forms.
+    """
+
+    rule = models.ForeignKey(
+        to=ComplianceRule,
+        on_delete=models.CASCADE,
+        related_name="test_results",
+    )
+    device = models.ForeignKey(
+        to=Device,
+        on_delete=models.CASCADE,
+        related_name="compliance_test_results",
+    )
+    status = models.CharField(
+        max_length=10,
+        choices=ComplianceTestResultStatusChoices.CHOICES,
+    )
+    output = models.TextField(blank=True, help_text="Assertion message or error trace captured during the run.")
+    run_datetime = models.DateTimeField(auto_now_add=True)
+    job_result = models.ForeignKey(
+        to=JobResult,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="compliance_test_results",
+    )
+
+    class Meta:
+        """Meta options for ComplianceTestResult."""
+
+        ordering = ["-run_datetime"]
+
+    def __str__(self):
+        """Return a summary of the rule, device, and status."""
+        return f"{self.rule} - {self.device} - {self.status}"
