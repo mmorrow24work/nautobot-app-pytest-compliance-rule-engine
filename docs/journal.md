@@ -73,12 +73,12 @@ Recomputed from every entry below on each run.
 <!-- VELOCITY_START -->
 | Metric | Value |
 |---|---|
-| Issues with recorded metrics | 15 |
-| Successful runs | 15 |
-| Mean time per issue | 5m 38s |
-| Mean turns per issue | 78 |
-| Mean output tokens per issue | 22,549 |
-| Mean estimated cost per issue | $0.3860 |
+| Issues with recorded metrics | 16 |
+| Successful runs | 16 |
+| Mean time per issue | 5m 45s |
+| Mean turns per issue | 81 |
+| Mean output tokens per issue | 23,321 |
+| Mean estimated cost per issue | $0.3947 |
 <!-- VELOCITY_END -->
 
 ---
@@ -282,3 +282,16 @@ Recomputed from every entry below on each run.
 - **Output Tokens:** 15511
 - **Estimated Cost:** $0.2333 (notional — see above)
 - **Run:** https://github.com/mmorrow24work/nautobot-app-pytest-compliance-rule-engine/actions/runs/31726131411
+
+## 2026-08-13 — Issue #13: M3: Live device data gathering (NAPALM/Netmiko)
+
+- **Result:** success
+- **PR:** #43
+- **Milestone:** M3: Job execution & device data gathering
+- **Model:** claude-sonnet-5
+- **Execution Duration:** 444 seconds
+- **Turns:** 117
+- **Input Tokens:** 372
+- **Output Tokens:** 34907
+- **Estimated Cost:** $0.5247 (notional — see above)
+- **Run:** https://github.com/mmorrow24work/nautobot-app-pytest-compliance-rule-engine/actions/runs/31726977390
