@@ -27,13 +27,15 @@ nautobot_pytest_compliance_rule_engine/
   views.py  tables.py  filters.py  forms.py  urls.py
   navigation.py        nav menu items
   template_content.py  device detail tab injection
-  engine/              static validation + restricted execution (M2)
+  validation.py        static ast.parse rejection of rule_code (M2)
+  engine.py            restricted-namespace execution (M2)
   jobs/                RunComplianceRules and seed-data Jobs
   api/                 serializers.py, views.py, urls.py
   migrations/
   tests/
 .github/workflows/     claude.yml (Lane B driver), test.yml (CI, added in M0)
 build/                 create-nautobot-issues.sh (issue/milestone scaffolding)
+docs/adr/              architecture decision records (M2 onward)
 ```
 
 Touch only files named in the issue you are implementing or listed above. In
@@ -76,21 +78,84 @@ black --check .
 nautobot-server test nautobot_pytest_compliance_rule_engine
 ```
 
-## Security constraint (M2)
+## Sandbox contract (M2) — decided, not open
 
-The rule engine executes user-supplied Python. This is the sensitive part of
-the build and the reason those issues are `lane:interactive` — do not widen
-the sandbox on your own initiative.
+The rule engine executes user-supplied Python. These decisions are **already
+made**; implement them, do not re-derive or widen them. If an issue seems to
+require deviating, stop and comment on the issue instead.
 
-- Rule code is validated with `ast.parse` and rejected on disallowed nodes
-  (imports, attribute access to dunders, `exec`/`eval`, comprehension-based
-  escapes) *before* execution.
-- Execution uses an explicitly constructed restricted namespace. Never pass
-  real `__builtins__`.
-- No filesystem, network, or subprocess access from rule code.
+### Threat model
 
-If an issue seems to require relaxing any of the above, stop and comment on
-the issue instead.
+Rule authorship is restricted to trusted users holding the relevant Nautobot
+RBAC permission. This is **defence in depth against mistakes and low-effort
+mischief — not a hard security boundary** against a determined attacker with
+rule-authoring rights. Say so plainly in the ADR and in module docstrings;
+do not describe it as a sandbox that contains hostile code.
+
+### Two layers
+
+1. **Static** (`validation.py`) — `ast.parse` at `ComplianceRule` save time.
+   Rejects before anything is persisted.
+2. **Runtime** (`engine.py`) — `exec` against an explicitly built namespace.
+   Never pass real `__builtins__`.
+
+Layer 2 assumes layer 1 ran, but must not depend on it: a rule reaching the
+engine unvalidated should still be contained.
+
+### Static rejection rules (`validation.py`)
+
+Reject rule_code containing any of:
+
+- `Import` / `ImportFrom` nodes — any import at all
+- A call to any of: `eval`, `exec`, `compile`, `__import__`, `open`,
+  `globals`, `locals`, `vars`, `getattr`, `setattr`, `delattr`, `input`,
+  `breakpoint`, `memoryview`
+- Any `Attribute` node whose `attr` starts and ends with `__`
+  (`__class__`, `__globals__`, `__subclasses__`, `__bases__`, …)
+- Any `Name` referring to `os`, `sys`, `subprocess`, `shutil`, `socket`,
+  `pathlib`, `importlib`, `builtins`
+
+Raise `django.core.exceptions.ValidationError` naming what was rejected and
+why. When in doubt, reject — a false rejection is a support ticket, a false
+acceptance is an incident.
+
+### Runtime namespace (`engine.py`)
+
+Builtins allowlist — exactly these, nothing else:
+
+```
+len str int float bool isinstance any all sorted enumerate zip
+min max sum abs round list dict set tuple range print
+```
+
+Modules: **`re` only**, pre-injected. Real compliance rules need pattern
+matching and imports are banned, so `re` is provided directly. Do not inject
+any other module; do not add one because a rule would be tidier with it.
+
+### Rule signature convention
+
+`rule_code` defines exactly one top-level function. The engine inspects its
+signature and passes the subset of `configuration` / `commands` it declares,
+as keyword arguments. A rule declaring neither is called with no arguments.
+
+### Result mapping
+
+| Outcome | Result |
+|---|---|
+| No exception | `status="pass"`, `output=""` |
+| `AssertionError` | `status="fail"`, `output=str(exc)` |
+| Any other exception | `status="error"`, `output=f"{type(exc).__name__}: {exc}"` |
+
+### Honesty requirement
+
+`validation.py` must carry a comment block listing bypasses this approach does
+**not** catch. Document real limitations rather than implying completeness —
+an overstated guarantee is worse than an acknowledged gap.
+
+### Order
+
+`#10` (ADR) → `#8` (validation) → `#9` (engine). The ADR records the decisions
+above before code depends on them.
 
 ## Conventions
 
