@@ -1,4 +1,4 @@
-"""Tests for the ComplianceRule and ComplianceTestResult models."""
+"""Tests for the ComplianceRule, ComplianceTestResult, and ComplianceRuleSet models."""
 
 from datetime import timedelta
 
@@ -12,6 +12,7 @@ from nautobot.extras.models import Role, Status
 
 from nautobot_pytest_compliance_rule_engine.models import (
     ComplianceRule,
+    ComplianceRuleSet,
     ComplianceRuleSeverityChoices,
     ComplianceTestResult,
     ComplianceTestResultStatusChoices,
@@ -176,3 +177,62 @@ class ComplianceTestResultModelTest(TestCase):
         ComplianceTestResult.objects.filter(pk=older.pk).update(run_datetime=timezone.now() - timedelta(days=1))
 
         self.assertEqual(list(ComplianceTestResult.objects.all()), [newer, older])
+
+
+class ComplianceRuleSetModelTest(TestCase):
+    """Tests for ComplianceRuleSet model behavior."""
+
+    @classmethod
+    def setUpTestData(cls):
+        """Build the ComplianceRules used to exercise the rule_set M2M relationship."""
+        cls.rule_1 = ComplianceRule.objects.create(
+            name="Require NTP servers",
+            rule_code="def test_ntp(device):\n    assert device.ntp_servers",
+        )
+        cls.rule_2 = ComplianceRule.objects.create(
+            name="Require SNMP community",
+            rule_code="def test_snmp(device):\n    assert device.snmp_community",
+        )
+
+    def test_create_compliance_rule_set(self):
+        """A ComplianceRuleSet can be created with the expected field values."""
+        rule_set = ComplianceRuleSet.objects.create(
+            name="CIS Cisco IOS Hardening",
+            description="Rules enforcing CIS benchmarks for Cisco IOS devices.",
+        )
+
+        self.assertEqual(rule_set.name, "CIS Cisco IOS Hardening")
+        self.assertEqual(rule_set.description, "Rules enforcing CIS benchmarks for Cisco IOS devices.")
+        self.assertEqual(rule_set.rules.count(), 0)
+
+    def test_str_returns_name(self):
+        """str(rule_set) returns the rule set's name."""
+        rule_set = ComplianceRuleSet.objects.create(name="CIS Cisco IOS Hardening")
+
+        self.assertEqual(str(rule_set), "CIS Cisco IOS Hardening")
+
+    def test_name_unique_constraint(self):
+        """Two ComplianceRuleSets cannot share the same name."""
+        ComplianceRuleSet.objects.create(name="Duplicate rule set name")
+
+        with self.assertRaises(IntegrityError):
+            with transaction.atomic():
+                ComplianceRuleSet.objects.create(name="Duplicate rule set name")
+
+    def test_add_and_remove_rules(self):
+        """Rules can be added to and removed from a ComplianceRuleSet."""
+        rule_set = ComplianceRuleSet.objects.create(name="CIS Cisco IOS Hardening")
+
+        rule_set.rules.add(self.rule_1, self.rule_2)
+
+        self.assertEqual(rule_set.rules.count(), 2)
+        self.assertIn(self.rule_1, rule_set.rules.all())
+        self.assertIn(self.rule_2, rule_set.rules.all())
+        self.assertIn(rule_set, self.rule_1.rule_sets.all())
+
+        rule_set.rules.remove(self.rule_1)
+
+        self.assertEqual(rule_set.rules.count(), 1)
+        self.assertNotIn(self.rule_1, rule_set.rules.all())
+        self.assertIn(self.rule_2, rule_set.rules.all())
+        self.assertNotIn(rule_set, self.rule_1.rule_sets.all())

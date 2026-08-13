@@ -104,3 +104,24 @@ class ComplianceTestResult(BaseModel):
     def __str__(self):
         """Return a summary of the rule, device, and status."""
         return f"{self.rule} - {self.device} - {self.status}"
+
+
+class ComplianceRuleSet(PrimaryModel):
+    """A named group of ComplianceRules that can be assigned to a Job run as a unit."""
+
+    name = models.CharField(max_length=100, unique=True)
+    description = models.TextField(blank=True)
+    rules = models.ManyToManyField(
+        to=ComplianceRule,
+        related_name="rule_sets",
+        blank=True,
+    )
+
+    class Meta:
+        """Meta options for ComplianceRuleSet."""
+
+        ordering = ["name"]
+
+    def __str__(self):
+        """Return the rule set's name."""
+        return self.name
