@@ -73,12 +73,12 @@ Recomputed from every entry below on each run.
 <!-- VELOCITY_START -->
 | Metric | Value |
 |---|---|
-| Issues with recorded metrics | 12 |
-| Successful runs | 12 |
-| Mean time per issue | 4m 49s |
-| Mean turns per issue | 73 |
-| Mean output tokens per issue | 20,392 |
-| Mean estimated cost per issue | $0.3303 |
+| Issues with recorded metrics | 13 |
+| Successful runs | 13 |
+| Mean time per issue | 5m 38s |
+| Mean turns per issue | 74 |
+| Mean output tokens per issue | 22,064 |
+| Mean estimated cost per issue | $0.3860 |
 <!-- VELOCITY_END -->
 
 ---
@@ -243,3 +243,16 @@ Recomputed from every entry below on each run.
 - **Output Tokens:** 28393
 - **Estimated Cost:** $0.7107 (notional — see above)
 - **Run:** https://github.com/mmorrow24work/nautobot-app-pytest-compliance-rule-engine/actions/runs/31686977928
+
+## 2026-08-13 — Issue #9: M2: Restricted-namespace execution engine
+
+- **Result:** success
+- **PR:** #40
+- **Milestone:** M2: Sandboxed rule execution engine
+- **Model:** claude-opus-5
+- **Execution Duration:** 916 seconds
+- **Turns:** 86
+- **Input Tokens:** 263
+- **Output Tokens:** 42127
+- **Estimated Cost:** $1.0545 (notional — see above)
+- **Run:** https://github.com/mmorrow24work/nautobot-app-pytest-compliance-rule-engine/actions/runs/31688154315
