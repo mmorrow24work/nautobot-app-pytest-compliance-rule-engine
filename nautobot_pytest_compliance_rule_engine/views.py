@@ -1,6 +1,14 @@
 """Views for nautobot_pytest_compliance_rule_engine."""
 
-from nautobot.apps.views import NautobotUIViewSet, ObjectDetailViewMixin, ObjectListViewMixin, ObjectView
+from collections import defaultdict
+from datetime import timedelta
+
+from django.contrib.auth.mixins import PermissionRequiredMixin
+from django.db.models import Count, OuterRef, Subquery
+from django.db.models.functions import TruncDate
+from django.shortcuts import render
+from django.utils import timezone
+from nautobot.apps.views import GenericView, NautobotUIViewSet, ObjectDetailViewMixin, ObjectListViewMixin, ObjectView
 from nautobot.dcim.models import Device
 
 from nautobot_pytest_compliance_rule_engine import forms, tables
@@ -10,10 +18,19 @@ from nautobot_pytest_compliance_rule_engine.filters import (
     ComplianceRuleSetFilterSet,
     ComplianceTestResultFilterSet,
 )
-from nautobot_pytest_compliance_rule_engine.models import ComplianceRule, ComplianceRuleSet, ComplianceTestResult
+from nautobot_pytest_compliance_rule_engine.models import (
+    ComplianceRule,
+    ComplianceRuleSet,
+    ComplianceRuleSeverityChoices,
+    ComplianceTestResult,
+    ComplianceTestResultStatusChoices,
+)
 
 # How many of the device's most recent ComplianceTestResult rows to show in the Compliance tab.
 DEVICE_COMPLIANCE_TAB_RESULTS_LIMIT = 20
+
+# How many trailing days the dashboard's daily trend chart covers.
+DASHBOARD_TREND_DAYS = 30
 
 
 class ComplianceRuleUIViewSet(NautobotUIViewSet):
@@ -82,3 +99,91 @@ class DeviceComplianceTabView(ObjectView):
             **super().get_extra_context(request, instance),
             "compliance_results_table": tables.ComplianceTestResultTable(results, exclude=("device",)),
         }
+
+
+class ComplianceDashboardView(PermissionRequiredMixin, GenericView):
+    """Fleet-wide compliance summary: current pass/fail/error counts by severity, plus a daily trend.
+
+    ComplianceTestResult keeps a full run history rather than one row per (rule, device) pair (see
+    the natural_key_field_names comment on that model), so "current snapshot" below means the most
+    recent result for each (rule, device) pair, not every row in the table. The trend chart, by
+    contrast, counts every run in the trailing window, since it's meant to show run activity over
+    time rather than fleet state at a point in time.
+    """
+
+    permission_required = "nautobot_pytest_compliance_rule_engine.view_compliancetestresult"
+    template_name = "nautobot_pytest_compliance_rule_engine/dashboard.html"
+
+    def get(self, request):
+        """Render the dashboard for the current user's visible ComplianceTestResult rows."""
+        queryset = ComplianceTestResult.objects.restrict(request.user, "view")
+        return render(
+            request,
+            self.template_name,
+            {
+                "severity_rows": self._severity_rows(queryset),
+                "daily_trend": self._daily_trend(queryset),
+                "trend_days": DASHBOARD_TREND_DAYS,
+                "has_results": queryset.exists(),
+            },
+        )
+
+    @staticmethod
+    def _empty_status_counts():
+        return {status: 0 for status, _ in ComplianceTestResultStatusChoices.CHOICES}
+
+    def _severity_rows(self, queryset):
+        """Return one row per severity, with pass/fail/error counts from each (rule, device) pair's latest run."""
+        latest_run_subquery = (
+            queryset.filter(rule_id=OuterRef("rule_id"), device_id=OuterRef("device_id"))
+            .order_by("-run_datetime")
+            .values("run_datetime")[:1]
+        )
+        latest_results = queryset.filter(run_datetime=Subquery(latest_run_subquery))
+        counts_by_severity = defaultdict(self._empty_status_counts)
+        for row in latest_results.values("rule__severity", "status").annotate(count=Count("id")):
+            counts_by_severity[row["rule__severity"]][row["status"]] = row["count"]
+
+        rows = []
+        for value, label in ComplianceRuleSeverityChoices.CHOICES:
+            counts = counts_by_severity[value]
+            rows.append(
+                {
+                    "value": value,
+                    "label": label,
+                    "css_class": tables.SEVERITY_LABEL_CSS_CLASSES.get(value, "default"),
+                    "counts": counts,
+                    "total": sum(counts.values()),
+                }
+            )
+        return rows
+
+    def _daily_trend(self, queryset):
+        """Return one entry per day in the trailing window, with pass/fail/error run counts."""
+        since = timezone.now() - timedelta(days=DASHBOARD_TREND_DAYS - 1)
+        counts_by_day = defaultdict(self._empty_status_counts)
+        daily_counts = (
+            queryset.filter(run_datetime__gte=since)
+            .annotate(day=TruncDate("run_datetime"))
+            .values("day", "status")
+            .annotate(count=Count("id"))
+        )
+        for row in daily_counts:
+            counts_by_day[row["day"]][row["status"]] = row["count"]
+
+        today = timezone.localdate()
+        trend = []
+        for offset in range(DASHBOARD_TREND_DAYS - 1, -1, -1):
+            day = today - timedelta(days=offset)
+            counts = counts_by_day[day]
+            trend.append({"day": day, "counts": counts, "total": sum(counts.values())})
+
+        # Bar heights are relative to the busiest day in the window, so a quiet 30 days doesn't
+        # render as a wall of full-height bars; an all-zero window leaves every bar at 0%.
+        max_total = max((entry["total"] for entry in trend), default=0)
+        for entry in trend:
+            if max_total:
+                entry["counts_pct"] = {status: count / max_total * 100 for status, count in entry["counts"].items()}
+            else:
+                entry["counts_pct"] = self._empty_status_counts()
+        return trend

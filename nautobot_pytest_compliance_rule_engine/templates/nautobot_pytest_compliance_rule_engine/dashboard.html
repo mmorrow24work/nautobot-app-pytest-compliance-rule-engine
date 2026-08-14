@@ -1,0 +1,105 @@
+{% extends "base.html" %}
+
+{% block title %}Compliance Dashboard{% endblock title %}
+
+{% block content %}
+    <h1>Compliance Dashboard</h1>
+
+    {% if not has_results %}
+        <div class="alert alert-info">
+            No compliance results have been recorded yet. Run the "Run Compliance Rules" job against
+            your devices to populate this dashboard.
+        </div>
+    {% endif %}
+
+    <div class="row">
+        {% for severity in severity_rows %}
+            <div class="col-md-4">
+                <div class="panel panel-default">
+                    <div class="panel-heading">
+                        <strong>{{ severity.label }} Severity</strong>
+                        <span class="label label-{{ severity.css_class }} pull-right">
+                            {{ severity.total }} result{{ severity.total|pluralize }}
+                        </span>
+                    </div>
+                    <div class="list-group">
+                        <div class="list-group-item">
+                            Pass
+                            <span class="label label-success pull-right">{{ severity.counts.pass }}</span>
+                        </div>
+                        <div class="list-group-item">
+                            Fail
+                            <span class="label label-danger pull-right">{{ severity.counts.fail }}</span>
+                        </div>
+                        <div class="list-group-item">
+                            Error
+                            <span class="label label-warning pull-right">{{ severity.counts.error }}</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        {% endfor %}
+    </div>
+
+    <div class="panel panel-default">
+        <div class="panel-heading">
+            <strong>{{ trend_days }}-Day Trend</strong>
+        </div>
+        <div class="panel-body">
+            <style>
+                .compliance-trend-chart {
+                    display: flex;
+                    align-items: flex-end;
+                    gap: 2px;
+                    height: 150px;
+                }
+                .compliance-trend-day {
+                    display: flex;
+                    flex-direction: column;
+                    align-items: center;
+                    flex: 1 1 0;
+                    min-width: 0;
+                    height: 100%;
+                }
+                .compliance-trend-bar {
+                    display: flex;
+                    flex-direction: column-reverse;
+                    width: 100%;
+                    flex: 1 1 auto;
+                    background-color: #f5f5f5;
+                }
+                .compliance-trend-segment {
+                    width: 100%;
+                }
+                .compliance-trend-label {
+                    margin-top: 4px;
+                    font-size: 10px;
+                    color: #777777;
+                    white-space: nowrap;
+                }
+                .compliance-trend-legend {
+                    margin-top: 12px;
+                }
+            </style>
+            <div class="compliance-trend-chart">
+                {% for day in daily_trend %}
+                    <div class="compliance-trend-day" title="{{ day.day }}: {{ day.total }} result{{ day.total|pluralize }}">
+                        <div class="compliance-trend-bar">
+                            <div class="compliance-trend-segment bg-success" style="height: {{ day.counts_pct.pass }}%"></div>
+                            <div class="compliance-trend-segment bg-danger" style="height: {{ day.counts_pct.fail }}%"></div>
+                            <div class="compliance-trend-segment bg-warning" style="height: {{ day.counts_pct.error }}%"></div>
+                        </div>
+                        <div class="compliance-trend-label">
+                            {% if forloop.counter0|divisibleby:5 or forloop.last %}{{ day.day|date:"n/j" }}{% else %}&nbsp;{% endif %}
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+            <div class="compliance-trend-legend">
+                <span class="label label-success">Pass</span>
+                <span class="label label-danger">Fail</span>
+                <span class="label label-warning">Error</span>
+            </div>
+        </div>
+    </div>
+{% endblock content %}

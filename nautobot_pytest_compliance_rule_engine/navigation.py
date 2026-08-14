@@ -12,6 +12,12 @@ menu_items = (
                 weight=100,
                 items=(
                     NavMenuItem(
+                        link="plugins:nautobot_pytest_compliance_rule_engine:dashboard",
+                        name="Dashboard",
+                        weight=50,
+                        permissions=["nautobot_pytest_compliance_rule_engine.view_compliancetestresult"],
+                    ),
+                    NavMenuItem(
                         link="plugins:nautobot_pytest_compliance_rule_engine:compliancerule_list",
                         name="Compliance Rules",
                         weight=100,
