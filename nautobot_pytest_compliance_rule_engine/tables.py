@@ -75,7 +75,7 @@ class ComplianceTestResultTable(BaseTable):
     device = tables.Column(linkify=True)
     rule = tables.Column(verbose_name="Rule")
     status = tables.Column()
-    run_datetime = tables.Column(verbose_name="Run Time")
+    run_datetime = tables.Column(verbose_name="Run Time", linkify=True)
     output = tables.Column(orderable=False)
 
     class Meta(BaseTable.Meta):
