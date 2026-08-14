@@ -74,11 +74,10 @@ class ComplianceTestResultUIViewSet(ObjectDetailViewMixin, ObjectListViewMixin):
 class DeviceComplianceTabView(ObjectView):
     """Render the device's most recent ComplianceTestResult rows as a "Compliance" tab.
 
-    Nautobot 2.4.5's `dcim/device.html` fully overrides `generic/object_retrieve.html`'s `content`
-    block without including `{% plugin_object_detail_tab_content %}`, so a `Tab` registered via
-    `TemplateExtension.object_detail_tabs` never gets its panels rendered on the Device detail page.
-    `template_content.py` instead registers a `DistinctViewTab` that links here; this view's
-    template extends `dcim/device/base.html` directly, bypassing that override.
+    `template_content.py` registers a `DistinctViewTab` that links here (see that module for why
+    a distinct view rather than an inline `Tab`). This view's template extends
+    `generic/object_retrieve.html`, matching how Nautobot 3.x core renders the Device's own
+    config/status/LLDP tabs -- 3.x removed the `dcim/device/base.html` this previously extended.
     """
 
     queryset = Device.objects.all()
@@ -151,7 +150,7 @@ class ComplianceDashboardView(PermissionRequiredMixin, GenericView):
                 {
                     "value": value,
                     "label": label,
-                    "css_class": tables.SEVERITY_LABEL_CSS_CLASSES.get(value, "default"),
+                    "css_class": tables.SEVERITY_BADGE_CSS_CLASSES.get(value, tables.DEFAULT_BADGE_CSS_CLASS),
                     "counts": counts,
                     "total": sum(counts.values()),
                 }

@@ -45,9 +45,7 @@ class Migration(migrations.Migration):
                 ),
                 (
                     "rule_code",
-                    models.TextField(
-                        help_text="Python/pytest function body executed by the compliance engine."
-                    ),
+                    models.TextField(help_text="Python/pytest function body executed by the compliance engine."),
                 ),
                 ("enabled", models.BooleanField(default=True)),
                 (

@@ -54,17 +54,23 @@ class ComplianceRuleSetTable(BaseTable):
         return value.count()
 
 
-SEVERITY_LABEL_CSS_CLASSES = {
-    ComplianceRuleSeverityChoices.LOW: "default",
+# Bootstrap 5 background-utility suffixes, used to colour the badges below. Nautobot 3.x
+# ships Bootstrap 5, which dropped Bootstrap 3's `.label`/`.label-*` classes entirely and
+# has no `bg-default` -- "secondary" is its equivalent neutral colour.
+SEVERITY_BADGE_CSS_CLASSES = {
+    ComplianceRuleSeverityChoices.LOW: "secondary",
     ComplianceRuleSeverityChoices.MEDIUM: "warning",
     ComplianceRuleSeverityChoices.HIGH: "danger",
 }
 
-STATUS_LABEL_CSS_CLASSES = {
+STATUS_BADGE_CSS_CLASSES = {
     ComplianceTestResultStatusChoices.PASS: "success",
     ComplianceTestResultStatusChoices.FAIL: "danger",
     ComplianceTestResultStatusChoices.ERROR: "warning",
 }
+
+# Colour to fall back to for a severity/status value not present in the maps above.
+DEFAULT_BADGE_CSS_CLASS = "secondary"
 
 OUTPUT_TRUNCATE_LENGTH = 80
 
@@ -85,9 +91,9 @@ class ComplianceTestResultTable(BaseTable):
 
     def render_rule(self, record):
         """Show the rule name, linked to its detail page, with a severity badge."""
-        css_class = SEVERITY_LABEL_CSS_CLASSES.get(record.rule.severity, "default")
+        css_class = SEVERITY_BADGE_CSS_CLASSES.get(record.rule.severity, DEFAULT_BADGE_CSS_CLASS)
         return format_html(
-            '<a href="{}">{}</a> <span class="label label-{}">{}</span>',
+            '<a href="{}">{}</a> <span class="badge bg-{}">{}</span>',
             record.rule.get_absolute_url(),
             record.rule.name,
             css_class,
@@ -96,8 +102,8 @@ class ComplianceTestResultTable(BaseTable):
 
     def render_status(self, record):
         """Show the status as a color-coded badge: green=pass, red=fail, orange=error."""
-        css_class = STATUS_LABEL_CSS_CLASSES.get(record.status, "default")
-        return format_html('<span class="label label-{}">{}</span>', css_class, record.get_status_display())
+        css_class = STATUS_BADGE_CSS_CLASSES.get(record.status, DEFAULT_BADGE_CSS_CLASS)
+        return format_html('<span class="badge bg-{}">{}</span>', css_class, record.get_status_display())
 
     def render_output(self, value):
         """Truncate long output, with a native expand/collapse control to view the full text."""

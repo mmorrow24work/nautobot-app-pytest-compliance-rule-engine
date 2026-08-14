@@ -1,11 +1,13 @@
-{% extends 'dcim/device/base.html' %}
+{# Nautobot 3.x removed `dcim/device/base.html`; its own distinct device tab views (config, #}
+{# status, lldp_neighbors) now extend `generic/object_retrieve.html` directly, so this does too. #}
+{% extends 'generic/object_retrieve.html' %}
 {% load render_table from django_tables2 %}
 
 {% block title %}{{ object }} - Compliance{% endblock title %}
 
 {% block content %}
-    <div class="panel panel-default">
-        <div class="panel-heading">
+    <div class="card">
+        <div class="card-header">
             <strong>Compliance Results</strong>
         </div>
         <div class="table-responsive">

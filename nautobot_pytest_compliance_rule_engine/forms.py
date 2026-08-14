@@ -30,7 +30,8 @@ class ComplianceRuleForm(NautobotModelForm):
         model = ComplianceRule
         fields = "__all__"
         widgets = {
-            "rule_code": forms.Textarea(attrs={"class": "text-monospace", "rows": 20}),
+            # Bootstrap 5 (Nautobot 3.x) renamed Bootstrap 3's `.text-monospace` to `.font-monospace`.
+            "rule_code": forms.Textarea(attrs={"class": "font-monospace", "rows": 20}),
         }
 
 
