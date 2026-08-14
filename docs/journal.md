@@ -73,12 +73,12 @@ Recomputed from every entry below on each run.
 <!-- VELOCITY_START -->
 | Metric | Value |
 |---|---|
-| Issues with recorded metrics | 31 |
-| Successful runs | 31 |
-| Mean time per issue | 7m 25s |
-| Mean turns per issue | 116 |
-| Mean output tokens per issue | 32,880 |
-| Mean estimated cost per issue | $0.5570 |
+| Issues with recorded metrics | 32 |
+| Successful runs | 32 |
+| Mean time per issue | 7m 44s |
+| Mean turns per issue | 121 |
+| Mean output tokens per issue | 34,048 |
+| Mean estimated cost per issue | $0.5946 |
 <!-- VELOCITY_END -->
 
 ---
@@ -490,3 +490,16 @@ Recomputed from every entry below on each run.
 - **Output Tokens:** 63510
 - **Estimated Cost:** $1.5915 (notional — see above)
 - **Run:** https://github.com/mmorrow24work/nautobot-app-pytest-compliance-rule-engine/actions/runs/31808912935
+
+## 2026-08-14 — Issue #52: Retarget app from Nautobot 2.4.x to 3.x
+
+- **Result:** success
+- **PR:** #54
+- **Milestone:** M0: Repo scaffolding & CI foundation
+- **Model:** claude-opus-5
+- **Execution Duration:** 1048 seconds
+- **Turns:** 254
+- **Input Tokens:** 706
+- **Output Tokens:** 70251
+- **Estimated Cost:** $1.7598 (notional — see above)
+- **Run:** https://github.com/mmorrow24work/nautobot-app-pytest-compliance-rule-engine/actions/runs/31808937858
