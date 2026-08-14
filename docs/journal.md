@@ -73,12 +73,12 @@ Recomputed from every entry below on each run.
 <!-- VELOCITY_START -->
 | Metric | Value |
 |---|---|
-| Issues with recorded metrics | 28 |
-| Successful runs | 28 |
-| Mean time per issue | 7m 08s |
-| Mean turns per issue | 112 |
-| Mean output tokens per issue | 31,755 |
-| Mean estimated cost per issue | $0.5241 |
+| Issues with recorded metrics | 29 |
+| Successful runs | 29 |
+| Mean time per issue | 6m 58s |
+| Mean turns per issue | 110 |
+| Mean output tokens per issue | 30,999 |
+| Mean estimated cost per issue | $0.5111 |
 <!-- VELOCITY_END -->
 
 ---
@@ -451,3 +451,16 @@ Recomputed from every entry below on each run.
 - **Output Tokens:** 53923
 - **Estimated Cost:** $0.8105 (notional — see above)
 - **Run:** https://github.com/mmorrow24work/nautobot-app-pytest-compliance-rule-engine/actions/runs/31782558681
+
+## 2026-08-14 — Issue #50: M4: Add Compliance tab to Device detail page
+
+- **Result:** success
+- **PR:** #50
+- **Milestone:** —
+- **Model:** claude-sonnet-5
+- **Execution Duration:** 144 seconds
+- **Turns:** 45
+- **Input Tokens:** 146
+- **Output Tokens:** 9833
+- **Estimated Cost:** $0.1479 (notional — see above)
+- **Run:** https://github.com/mmorrow24work/nautobot-app-pytest-compliance-rule-engine/actions/runs/31783899339
