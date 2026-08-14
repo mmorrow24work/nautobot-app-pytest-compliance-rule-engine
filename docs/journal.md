@@ -73,12 +73,12 @@ Recomputed from every entry below on each run.
 <!-- VELOCITY_START -->
 | Metric | Value |
 |---|---|
-| Issues with recorded metrics | 26 |
-| Successful runs | 26 |
-| Mean time per issue | 6m 54s |
-| Mean turns per issue | 106 |
-| Mean output tokens per issue | 30,466 |
-| Mean estimated cost per issue | $0.5083 |
+| Issues with recorded metrics | 27 |
+| Successful runs | 27 |
+| Mean time per issue | 7m 01s |
+| Mean turns per issue | 110 |
+| Mean output tokens per issue | 30,934 |
+| Mean estimated cost per issue | $0.5135 |
 <!-- VELOCITY_END -->
 
 ---
@@ -425,3 +425,16 @@ Recomputed from every entry below on each run.
 - **Output Tokens:** 47223
 - **Estimated Cost:** $0.7095 (notional — see above)
 - **Run:** https://github.com/mmorrow24work/nautobot-app-pytest-compliance-rule-engine/actions/runs/31776601034
+
+## 2026-08-14 — Issue #18: M4: Device detail page tab injection
+
+- **Result:** success
+- **PR:** #50
+- **Milestone:** M4: Views & UI
+- **Model:** claude-sonnet-5
+- **Execution Duration:** 618 seconds
+- **Turns:** 206
+- **Input Tokens:** 668
+- **Output Tokens:** 43101
+- **Estimated Cost:** $0.6485 (notional — see above)
+- **Run:** https://github.com/mmorrow24work/nautobot-app-pytest-compliance-rule-engine/actions/runs/31781293033
