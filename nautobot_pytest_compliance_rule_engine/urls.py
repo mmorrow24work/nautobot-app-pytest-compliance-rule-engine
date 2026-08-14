@@ -1,11 +1,11 @@
-"""Django urlpatterns declaration for nautobot_pytest_compliance_rule_engine app.
-
-No UI views are registered yet; the router is empty scaffolding for a later
-milestone.
-"""
+"""Django urlpatterns declaration for nautobot_pytest_compliance_rule_engine app."""
 
 from nautobot.apps.urls import NautobotUIViewSetRouter
 
+from nautobot_pytest_compliance_rule_engine import views
+
 router = NautobotUIViewSetRouter()
+router.register("compliance-rules", views.ComplianceRuleUIViewSet)
+router.register("compliance-rule-sets", views.ComplianceRuleSetUIViewSet)
 
 urlpatterns = router.urls
