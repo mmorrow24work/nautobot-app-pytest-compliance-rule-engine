@@ -75,10 +75,15 @@ class DeviceComplianceTabTest(TestCase):
             output="ntp is not configured",
         )
 
-    def test_device_with_results_shows_tab_and_content(self):
-        """A device with ComplianceTestResults shows the Compliance tab, with those results in it."""
+    def test_device_page_shows_compliance_tab_link(self):
+        """The Device detail page itself shows a link to the Compliance tab.
+
+        The tab's content is *not* checked here: it renders on its own page (see
+        DeviceComplianceTabView), not inline on the Device detail page -- Nautobot 2.4.5's
+        dcim/device.html doesn't support inline object_detail_tabs content (see
+        template_content.py for why), so this is a DistinctViewTab.
+        """
         self.add_permissions("dcim.view_device")
-        self.add_permissions("nautobot_pytest_compliance_rule_engine.view_compliancetestresult")
 
         url = reverse("dcim:device", kwargs={"pk": self.device_with_results.pk})
         response = self.client.get(url)
@@ -86,18 +91,39 @@ class DeviceComplianceTabTest(TestCase):
         self.assertHttpStatus(response, 200)
         content = extract_page_body(response.content.decode(response.charset))
         self.assertIn("Compliance", content)
-        self.assertIn("Tab Test Rule", content)
-        self.assertIn("ntp is not configured", content)
+        expected_tab_url = reverse(
+            "plugins:nautobot_pytest_compliance_rule_engine:device_compliance_tab",
+            kwargs={"pk": self.device_with_results.pk},
+        )
+        self.assertIn(expected_tab_url, content)
 
-    def test_device_without_results_shows_empty_state(self):
-        """A device with no ComplianceTestResults still shows the tab, with an empty table rather than an error."""
+    def test_device_with_results_tab_shows_content(self):
+        """A device with ComplianceTestResults shows those results on its Compliance tab page."""
         self.add_permissions("dcim.view_device")
         self.add_permissions("nautobot_pytest_compliance_rule_engine.view_compliancetestresult")
 
-        url = reverse("dcim:device", kwargs={"pk": self.device_without_results.pk})
+        url = reverse(
+            "plugins:nautobot_pytest_compliance_rule_engine:device_compliance_tab",
+            kwargs={"pk": self.device_with_results.pk},
+        )
         response = self.client.get(url)
 
         self.assertHttpStatus(response, 200)
         content = extract_page_body(response.content.decode(response.charset))
-        self.assertIn("Compliance", content)
+        self.assertIn("Tab Test Rule", content)
+        self.assertIn("ntp is not configured", content)
+
+    def test_device_without_results_tab_shows_empty_state(self):
+        """A device with no ComplianceTestResults still shows its Compliance tab page, with no error."""
+        self.add_permissions("dcim.view_device")
+        self.add_permissions("nautobot_pytest_compliance_rule_engine.view_compliancetestresult")
+
+        url = reverse(
+            "plugins:nautobot_pytest_compliance_rule_engine:device_compliance_tab",
+            kwargs={"pk": self.device_without_results.pk},
+        )
+        response = self.client.get(url)
+
+        self.assertHttpStatus(response, 200)
+        content = extract_page_body(response.content.decode(response.charset))
         self.assertNotIn("Tab Test Rule", content)

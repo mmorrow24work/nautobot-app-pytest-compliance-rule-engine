@@ -1,6 +1,7 @@
 """Views for nautobot_pytest_compliance_rule_engine."""
 
-from nautobot.apps.views import NautobotUIViewSet, ObjectDetailViewMixin, ObjectListViewMixin
+from nautobot.apps.views import NautobotUIViewSet, ObjectDetailViewMixin, ObjectListViewMixin, ObjectView
+from nautobot.dcim.models import Device
 
 from nautobot_pytest_compliance_rule_engine import forms, tables
 from nautobot_pytest_compliance_rule_engine.api.serializers import ComplianceRuleSerializer, ComplianceRuleSetSerializer
@@ -10,6 +11,9 @@ from nautobot_pytest_compliance_rule_engine.filters import (
     ComplianceTestResultFilterSet,
 )
 from nautobot_pytest_compliance_rule_engine.models import ComplianceRule, ComplianceRuleSet, ComplianceTestResult
+
+# How many of the device's most recent ComplianceTestResult rows to show in the Compliance tab.
+DEVICE_COMPLIANCE_TAB_RESULTS_LIMIT = 20
 
 
 class ComplianceRuleUIViewSet(NautobotUIViewSet):
@@ -48,3 +52,30 @@ class ComplianceTestResultUIViewSet(ObjectDetailViewMixin, ObjectListViewMixin):
     filterset_form_class = forms.ComplianceTestResultFilterForm
     table_class = tables.ComplianceTestResultTable
     action_buttons = ("export",)
+
+
+class DeviceComplianceTabView(ObjectView):
+    """Render the device's most recent ComplianceTestResult rows as a "Compliance" tab.
+
+    Nautobot 2.4.5's `dcim/device.html` fully overrides `generic/object_retrieve.html`'s `content`
+    block without including `{% plugin_object_detail_tab_content %}`, so a `Tab` registered via
+    `TemplateExtension.object_detail_tabs` never gets its panels rendered on the Device detail page.
+    `template_content.py` instead registers a `DistinctViewTab` that links here; this view's
+    template extends `dcim/device/base.html` directly, bypassing that override.
+    """
+
+    queryset = Device.objects.all()
+    template_name = "nautobot_pytest_compliance_rule_engine/device_compliance_tab.html"
+
+    def get_extra_context(self, request, instance):
+        """Add the device's most recent ComplianceTestResult rows, as a table, to the context."""
+        results = (
+            ComplianceTestResult.objects.restrict(request.user, "view")
+            .filter(device=instance)
+            .select_related("rule")
+            .order_by("-run_datetime")[:DEVICE_COMPLIANCE_TAB_RESULTS_LIMIT]
+        )
+        return {
+            **super().get_extra_context(request, instance),
+            "compliance_results_table": tables.ComplianceTestResultTable(results, exclude=("device",)),
+        }
