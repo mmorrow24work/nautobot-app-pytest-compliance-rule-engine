@@ -35,6 +35,12 @@ menu_items = (
                             ),
                         ),
                     ),
+                    NavMenuItem(
+                        link="plugins:nautobot_pytest_compliance_rule_engine:compliancetestresult_list",
+                        name="Compliance Results",
+                        weight=300,
+                        permissions=["nautobot_pytest_compliance_rule_engine.view_compliancetestresult"],
+                    ),
                 ),
             ),
         ),
