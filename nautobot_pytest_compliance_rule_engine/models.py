@@ -118,6 +118,15 @@ class ComplianceTestResult(BaseModel):
 
         ordering = ["-run_datetime"]
 
+    # No UniqueConstraint/unique_together exists (or should exist) on this model: the same
+    # rule/device pair recurs on every run, and keeping that history is the point of the model.
+    # Without one, Nautobot's BaseModel.natural_key_field_lookups can't auto-detect a natural key,
+    # so it's declared explicitly here. This combination isn't guaranteed unique (two runs of the
+    # same rule against the same device could in principle share a `run_datetime`), but it's as
+    # precise an identifier as the model allows -- the same "nearly unique" tradeoff Nautobot core
+    # makes for FileProxy.natural_key_field_names ("name", "uploaded_at").
+    natural_key_field_names = ["rule", "device", "run_datetime"]
+
     def __str__(self):
         """Return a summary of the rule, device, and status."""
         return f"{self.rule} - {self.device} - {self.status}"
