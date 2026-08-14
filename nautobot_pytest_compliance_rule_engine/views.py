@@ -69,7 +69,10 @@ class DeviceComplianceTabView(ObjectView):
 
     def get_extra_context(self, request, instance):
         """Add the device's most recent ComplianceTestResult rows, as a table, to the context."""
-        results = (
+        # Materialized to a list: django-tables2's Table.__init__ inspects an ordered queryset's
+        # existing `.ordering` and re-applies it via `.order_by()`, which Django forbids once a
+        # slice has been taken. A list has no such ordering to re-apply, sidestepping the clash.
+        results = list(
             ComplianceTestResult.objects.restrict(request.user, "view")
             .filter(device=instance)
             .select_related("rule")
