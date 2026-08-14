@@ -16,4 +16,9 @@ urlpatterns = [
         views.DeviceComplianceTabView.as_view(),
         name="device_compliance_tab",
     ),
+    path(
+        "dashboard/",
+        views.ComplianceDashboardView.as_view(),
+        name="dashboard",
+    ),
 ] + router.urls
