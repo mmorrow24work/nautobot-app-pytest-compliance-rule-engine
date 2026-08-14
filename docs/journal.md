@@ -73,12 +73,12 @@ Recomputed from every entry below on each run.
 <!-- VELOCITY_START -->
 | Metric | Value |
 |---|---|
-| Issues with recorded metrics | 29 |
-| Successful runs | 29 |
-| Mean time per issue | 6m 58s |
-| Mean turns per issue | 110 |
-| Mean output tokens per issue | 30,999 |
-| Mean estimated cost per issue | $0.5111 |
+| Issues with recorded metrics | 30 |
+| Successful runs | 30 |
+| Mean time per issue | 7m 06s |
+| Mean turns per issue | 112 |
+| Mean output tokens per issue | 31,859 |
+| Mean estimated cost per issue | $0.5225 |
 <!-- VELOCITY_END -->
 
 ---
@@ -464,3 +464,16 @@ Recomputed from every entry below on each run.
 - **Output Tokens:** 9833
 - **Estimated Cost:** $0.1479 (notional — see above)
 - **Run:** https://github.com/mmorrow24work/nautobot-app-pytest-compliance-rule-engine/actions/runs/31783899339
+
+## 2026-08-14 — Issue #19: M4: Dashboard summary widget
+
+- **Result:** success
+- **PR:** #51
+- **Milestone:** M4: Views & UI
+- **Model:** claude-sonnet-5
+- **Execution Duration:** 643 seconds
+- **Turns:** 167
+- **Input Tokens:** 516
+- **Output Tokens:** 56801
+- **Estimated Cost:** $0.8536 (notional — see above)
+- **Run:** https://github.com/mmorrow24work/nautobot-app-pytest-compliance-rule-engine/actions/runs/31784556340
