@@ -79,9 +79,9 @@ class DeviceComplianceTabTest(TestCase):
         """The Device detail page itself shows a link to the Compliance tab.
 
         The tab's content is *not* checked here: it renders on its own page (see
-        DeviceComplianceTabView), not inline on the Device detail page -- Nautobot 2.4.5's
-        dcim/device.html doesn't support inline object_detail_tabs content (see
-        template_content.py for why), so this is a DistinctViewTab.
+        DeviceComplianceTabView), not inline on the Device detail page -- this is a
+        DistinctViewTab, so the Device page carries only the link (see template_content.py
+        for why a distinct view is used).
         """
         self.add_permissions("dcim.view_device")
 
