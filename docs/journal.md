@@ -73,12 +73,12 @@ Recomputed from every entry below on each run.
 <!-- VELOCITY_START -->
 | Metric | Value |
 |---|---|
-| Issues with recorded metrics | 24 |
-| Successful runs | 24 |
-| Mean time per issue | 6m 41s |
-| Mean turns per issue | 103 |
-| Mean output tokens per issue | 28,923 |
-| Mean estimated cost per issue | $0.4893 |
+| Issues with recorded metrics | 25 |
+| Successful runs | 25 |
+| Mean time per issue | 6m 49s |
+| Mean turns per issue | 106 |
+| Mean output tokens per issue | 29,796 |
+| Mean estimated cost per issue | $0.5002 |
 <!-- VELOCITY_END -->
 
 ---
@@ -399,3 +399,16 @@ Recomputed from every entry below on each run.
 - **Output Tokens:** 47507
 - **Estimated Cost:** $0.7141 (notional — see above)
 - **Run:** https://github.com/mmorrow24work/nautobot-app-pytest-compliance-rule-engine/actions/runs/31774572792
+
+## 2026-08-14 — Issue #49: M4: Add filterable ComplianceTestResult results table
+
+- **Result:** success
+- **PR:** #49
+- **Milestone:** —
+- **Model:** claude-sonnet-5
+- **Execution Duration:** 603 seconds
+- **Turns:** 176
+- **Input Tokens:** 538
+- **Output Tokens:** 50743
+- **Estimated Cost:** $0.7628 (notional — see above)
+- **Run:** https://github.com/mmorrow24work/nautobot-app-pytest-compliance-rule-engine/actions/runs/31775613531
