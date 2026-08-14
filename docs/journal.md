@@ -73,12 +73,12 @@ Recomputed from every entry below on each run.
 <!-- VELOCITY_START -->
 | Metric | Value |
 |---|---|
-| Issues with recorded metrics | 21 |
-| Successful runs | 21 |
-| Mean time per issue | 6m 18s |
-| Mean turns per issue | 93 |
-| Mean output tokens per issue | 26,099 |
-| Mean estimated cost per issue | $0.4531 |
+| Issues with recorded metrics | 22 |
+| Successful runs | 22 |
+| Mean time per issue | 6m 19s |
+| Mean turns per issue | 94 |
+| Mean output tokens per issue | 26,543 |
+| Mean estimated cost per issue | $0.4570 |
 <!-- VELOCITY_END -->
 
 ---
@@ -360,3 +360,16 @@ Recomputed from every entry below on each run.
 - **Output Tokens:** 27567
 - **Estimated Cost:** $0.4145 (notional — see above)
 - **Run:** https://github.com/mmorrow24work/nautobot-app-pytest-compliance-rule-engine/actions/runs/31755499850
+
+## 2026-08-14 — Issue #15: M3: End-to-end Job integration test suite
+
+- **Result:** success
+- **PR:** #47
+- **Milestone:** M3: Job execution & device data gathering
+- **Model:** claude-sonnet-5
+- **Execution Duration:** 414 seconds
+- **Turns:** 126
+- **Input Tokens:** 398
+- **Output Tokens:** 35879
+- **Estimated Cost:** $0.5394 (notional — see above)
+- **Run:** https://github.com/mmorrow24work/nautobot-app-pytest-compliance-rule-engine/actions/runs/31756296868
