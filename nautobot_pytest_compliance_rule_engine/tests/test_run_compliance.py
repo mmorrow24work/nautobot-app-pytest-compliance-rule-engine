@@ -486,7 +486,7 @@ class RunComplianceRulesExecutionTest(TestCase):
             patch(f"{JOB_MODULE}.get_latest_backup_config", side_effect=golden_config_for),
             patch(f"{JOB_MODULE}.gather_command_output"),
         ):
-            summary = self.run_job(job, platform=self.platform_ios)
+            summary = self.run_job(job, rule_set=rule_set, platform=self.platform_ios)
 
         self.assertEqual(summary["error"], 2)
         result = ComplianceTestResult.objects.get(device=self.device_1, rule=self.version_rule)
