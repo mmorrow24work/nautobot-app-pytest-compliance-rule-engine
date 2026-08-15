@@ -54,13 +54,16 @@ class ComplianceRuleSetTable(BaseTable):
         return value.count()
 
 
-SEVERITY_LABEL_CSS_CLASSES = {
+# Bootstrap contextual colour suffixes, used as `badge bg-<value>`. Nautobot 3.x ships
+# Bootstrap 5, where the Bootstrap 3 `label label-<value>` component became `badge bg-<value>`;
+# the colour names themselves are unchanged, and Nautobot still defines `bg-default`.
+SEVERITY_BADGE_CSS_CLASSES = {
     ComplianceRuleSeverityChoices.LOW: "default",
     ComplianceRuleSeverityChoices.MEDIUM: "warning",
     ComplianceRuleSeverityChoices.HIGH: "danger",
 }
 
-STATUS_LABEL_CSS_CLASSES = {
+STATUS_BADGE_CSS_CLASSES = {
     ComplianceTestResultStatusChoices.PASS: "success",
     ComplianceTestResultStatusChoices.FAIL: "danger",
     ComplianceTestResultStatusChoices.ERROR: "warning",
@@ -85,9 +88,9 @@ class ComplianceTestResultTable(BaseTable):
 
     def render_rule(self, record):
         """Show the rule name, linked to its detail page, with a severity badge."""
-        css_class = SEVERITY_LABEL_CSS_CLASSES.get(record.rule.severity, "default")
+        css_class = SEVERITY_BADGE_CSS_CLASSES.get(record.rule.severity, "default")
         return format_html(
-            '<a href="{}">{}</a> <span class="label label-{}">{}</span>',
+            '<a href="{}">{}</a> <span class="badge bg-{}">{}</span>',
             record.rule.get_absolute_url(),
             record.rule.name,
             css_class,
@@ -96,8 +99,8 @@ class ComplianceTestResultTable(BaseTable):
 
     def render_status(self, record):
         """Show the status as a color-coded badge: green=pass, red=fail, orange=error."""
-        css_class = STATUS_LABEL_CSS_CLASSES.get(record.status, "default")
-        return format_html('<span class="label label-{}">{}</span>', css_class, record.get_status_display())
+        css_class = STATUS_BADGE_CSS_CLASSES.get(record.status, "default")
+        return format_html('<span class="badge bg-{}">{}</span>', css_class, record.get_status_display())
 
     def render_output(self, value):
         """Truncate long output, with a native expand/collapse control to view the full text."""

@@ -15,25 +15,25 @@
     <div class="row">
         {% for severity in severity_rows %}
             <div class="col-md-4">
-                <div class="panel panel-default">
-                    <div class="panel-heading">
+                <div class="card">
+                    <div class="card-header">
                         <strong>{{ severity.label }} Severity</strong>
-                        <span class="label label-{{ severity.css_class }} pull-right">
+                        <span class="badge bg-{{ severity.css_class }} float-end">
                             {{ severity.total }} result{{ severity.total|pluralize }}
                         </span>
                     </div>
                     <div class="list-group">
                         <div class="list-group-item">
                             Pass
-                            <span class="label label-success pull-right">{{ severity.counts.pass }}</span>
+                            <span class="badge bg-success float-end">{{ severity.counts.pass }}</span>
                         </div>
                         <div class="list-group-item">
                             Fail
-                            <span class="label label-danger pull-right">{{ severity.counts.fail }}</span>
+                            <span class="badge bg-danger float-end">{{ severity.counts.fail }}</span>
                         </div>
                         <div class="list-group-item">
                             Error
-                            <span class="label label-warning pull-right">{{ severity.counts.error }}</span>
+                            <span class="badge bg-warning float-end">{{ severity.counts.error }}</span>
                         </div>
                     </div>
                 </div>
@@ -41,11 +41,11 @@
         {% endfor %}
     </div>
 
-    <div class="panel panel-default">
-        <div class="panel-heading">
+    <div class="card">
+        <div class="card-header">
             <strong>{{ trend_days }}-Day Trend</strong>
         </div>
-        <div class="panel-body">
+        <div class="card-body">
             <style>
                 .compliance-trend-chart {
                     display: flex;
@@ -96,9 +96,9 @@
                 {% endfor %}
             </div>
             <div class="compliance-trend-legend">
-                <span class="label label-success">Pass</span>
-                <span class="label label-danger">Fail</span>
-                <span class="label label-warning">Error</span>
+                <span class="badge bg-success">Pass</span>
+                <span class="badge bg-danger">Fail</span>
+                <span class="badge bg-warning">Error</span>
             </div>
         </div>
     </div>

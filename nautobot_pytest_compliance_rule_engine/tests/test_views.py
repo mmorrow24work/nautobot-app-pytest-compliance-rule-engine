@@ -98,6 +98,11 @@ class ComplianceTestResultViewTest(
 
     model = ComplianceTestResult
 
+    # The retrieve view renders the result's device, whose location breadcrumb runs one
+    # recursive CTE query against dcim_location under 3.x's tree-model Location -- a fixed
+    # cost, not an N+1, so it's an expected addition to the framework's default budget of 0.
+    allowed_number_of_tree_queries_per_view_type = {"retrieve": 1}
+
     @classmethod
     def setUpTestData(cls):
         device_ct = ContentType.objects.get_for_model(Device)
@@ -176,7 +181,7 @@ class ComplianceTestResultViewTest(
         """Filtering the list view by status only returns results with that status."""
         self.add_permissions("nautobot_pytest_compliance_rule_engine.view_compliancetestresult")
 
-        response = self.client.get(f"{self._get_url('list')}?status=fail")
+        response = self.client.get(f"{self._get_url('list')}?status=fail", headers={"HX-Request": "true"})
 
         self.assertHttpStatus(response, 200)
         content = extract_page_body(response.content.decode(response.charset))
@@ -187,7 +192,7 @@ class ComplianceTestResultViewTest(
         """Filtering the list view by the rule's severity only returns matching results."""
         self.add_permissions("nautobot_pytest_compliance_rule_engine.view_compliancetestresult")
 
-        response = self.client.get(f"{self._get_url('list')}?severity=high")
+        response = self.client.get(f"{self._get_url('list')}?severity=high", headers={"HX-Request": "true"})
 
         self.assertHttpStatus(response, 200)
         content = extract_page_body(response.content.decode(response.charset))
@@ -198,7 +203,7 @@ class ComplianceTestResultViewTest(
         """Filtering the list view by device only returns results for that device."""
         self.add_permissions("nautobot_pytest_compliance_rule_engine.view_compliancetestresult")
 
-        response = self.client.get(f"{self._get_url('list')}?device={self.device_1.pk}")
+        response = self.client.get(f"{self._get_url('list')}?device={self.device_1.pk}", headers={"HX-Request": "true"})
 
         self.assertHttpStatus(response, 200)
         content = extract_page_body(response.content.decode(response.charset))

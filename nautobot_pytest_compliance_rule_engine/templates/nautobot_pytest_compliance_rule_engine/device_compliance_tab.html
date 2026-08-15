@@ -1,11 +1,11 @@
-{% extends 'dcim/device/base.html' %}
+{% extends 'generic/object_retrieve.html' %}
 {% load render_table from django_tables2 %}
 
 {% block title %}{{ object }} - Compliance{% endblock title %}
 
 {% block content %}
-    <div class="panel panel-default">
-        <div class="panel-heading">
+    <div class="card">
+        <div class="card-header">
             <strong>Compliance Results</strong>
         </div>
         <div class="table-responsive">
