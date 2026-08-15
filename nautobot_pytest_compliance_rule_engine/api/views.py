@@ -77,6 +77,7 @@ class RunComplianceRulesAPIView(APIView):
     permission_classes = [IsAuthenticated]
 
     def post(self, request, *args, **kwargs):
+        """Validate the submitted Job inputs, enqueue a run, and return the resulting JobResult."""
         if not request.user.has_perm("extras.run_job"):
             raise PermissionDenied("This user does not have permission to run jobs.")
 
