@@ -1,4 +1,4 @@
-"""API tests for ComplianceRule, ComplianceRuleSet, and ComplianceTestResult.
+"""API tests for ComplianceRule, ComplianceRuleSet, ComplianceTestResult, and the job-trigger endpoint.
 
 Uses Nautobot's `APIViewTestCases.APIViewTestCase`, which exercises list/get/create/
 update/delete both with and without the relevant object permission -- so each test
@@ -10,9 +10,11 @@ from django.contrib.contenttypes.models import ContentType
 from django.urls import reverse
 from nautobot.core.testing import APITestCase, APIViewTestCases
 from nautobot.dcim.models import Device, DeviceType, Location, LocationType, Manufacturer
-from nautobot.extras.models import Role, Status
+from nautobot.extras.models import Job as JobModel
+from nautobot.extras.models import JobResult, Role, Status
 from rest_framework import status
 
+from nautobot_pytest_compliance_rule_engine.jobs.run_compliance import RunComplianceRules
 from nautobot_pytest_compliance_rule_engine.models import (
     ComplianceRule,
     ComplianceRuleSet,
@@ -255,3 +257,60 @@ class ComplianceTestResultTest(
         response = self.client.delete(self._get_detail_url(instance), **self.header)
 
         self.assertHttpStatus(response, status.HTTP_405_METHOD_NOT_ALLOWED)
+
+
+class RunComplianceRulesAPIViewTest(APITestCase):
+    """Tests for the RunComplianceRules job-trigger endpoint.
+
+    This is a plain APIView, not a model endpoint, so the usual `APIViewTestCases`
+    mixins don't apply -- permission, validation, and success are each exercised by hand.
+    """
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.rule_set = ComplianceRuleSet.objects.create(name="Run API Rule Set")
+
+        # Nautobot ships every Job disabled until an admin opts it in; enable it here so
+        # the tests below exercise the endpoint's own validation/permission logic rather
+        # than tripping on the unrelated "not enabled" guard.
+        job_model = JobModel.objects.get(
+            module_name=RunComplianceRules.__module__,
+            job_class_name=RunComplianceRules.__name__,
+        )
+        job_model.enabled = True
+        job_model.save()
+
+    def _get_url(self):
+        return reverse("plugins-api:nautobot_pytest_compliance_rule_engine-api:run-compliance-rules")
+
+    def test_run_without_permission(self):
+        """A user lacking the extras.run_job permission is rejected."""
+        response = self.client.post(self._get_url(), {"rule_set": str(self.rule_set.pk)}, format="json", **self.header)
+
+        self.assertHttpStatus(response, status.HTTP_403_FORBIDDEN)
+
+    def test_run_with_invalid_data(self):
+        """Omitting the required rule_set returns a 400 with field errors, and enqueues nothing."""
+        self.add_permissions("extras.run_job")
+
+        response = self.client.post(self._get_url(), {}, format="json", **self.header)
+
+        self.assertHttpStatus(response, status.HTTP_400_BAD_REQUEST)
+        self.assertIn("rule_set", response.data["errors"])
+        self.assertEqual(JobResult.objects.count(), 0)
+
+    def test_run_triggers_job_result(self):
+        """A valid POST enqueues the Job and returns 202 with the JobResult id/url."""
+        self.add_permissions("extras.run_job")
+
+        response = self.client.post(self._get_url(), {"rule_set": str(self.rule_set.pk)}, format="json", **self.header)
+
+        self.assertHttpStatus(response, status.HTTP_202_ACCEPTED)
+        job_result_data = response.data["job_result"]
+        self.assertIn("id", job_result_data)
+        self.assertIn("url", job_result_data)
+
+        job_result = JobResult.objects.get(pk=job_result_data["id"])
+        self.assertEqual(job_result.job_model.module_name, RunComplianceRules.__module__)
+        self.assertEqual(job_result.job_model.job_class_name, RunComplianceRules.__name__)
+        self.assertEqual(job_result.user, self.user)

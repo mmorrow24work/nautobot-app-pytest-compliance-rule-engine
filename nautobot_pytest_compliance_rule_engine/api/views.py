@@ -1,12 +1,23 @@
 """API views for nautobot_pytest_compliance_rule_engine."""
 
+from django.core.exceptions import ObjectDoesNotExist
+from django.core.exceptions import ValidationError as DjangoValidationError
 from nautobot.apps.api import NautobotModelViewSet, ReadOnlyModelViewSet
+from nautobot.extras.api.serializers import JobResultSerializer
+from nautobot.extras.models import Job as JobModel
+from nautobot.extras.models import JobResult
+from rest_framework import status
+from rest_framework.exceptions import NotFound, PermissionDenied
+from rest_framework.permissions import IsAuthenticated
+from rest_framework.response import Response
+from rest_framework.views import APIView
 
 from nautobot_pytest_compliance_rule_engine.filters import (
     ComplianceRuleFilterSet,
     ComplianceRuleSetFilterSet,
     ComplianceTestResultFilterSet,
 )
+from nautobot_pytest_compliance_rule_engine.jobs.run_compliance import RunComplianceRules
 from nautobot_pytest_compliance_rule_engine.models import ComplianceRule, ComplianceRuleSet, ComplianceTestResult
 
 from . import serializers
@@ -48,3 +59,46 @@ class ComplianceTestResultViewSet(ReadOnlyModelViewSet):
     queryset = ComplianceTestResult.objects.select_related("rule", "device")
     serializer_class = serializers.ComplianceTestResultSerializer
     filterset_class = ComplianceTestResultFilterSet
+
+
+class RunComplianceRulesAPIView(APIView):
+    """Trigger the RunComplianceRules Job from an external caller, e.g. a CI/CD pipeline.
+
+    Accepts the same inputs as the Job's form (the location/role/platform/tag device
+    filters and rule_set) as a JSON body, validates and enqueues them exactly as the Job
+    form would, and returns the resulting JobResult's id/url. This endpoint does not wait
+    for the run to finish -- poll Nautobot's existing JobResult API for completion.
+
+    Not a ModelViewSet: there is no model backing "trigger a job", so permission is
+    checked by hand rather than via DjangoObjectPermissions' add/change/delete mapping,
+    the same way Nautobot's own JobViewSet.run() action does.
+    """
+
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, *args, **kwargs):
+        if not request.user.has_perm("extras.run_job"):
+            raise PermissionDenied("This user does not have permission to run jobs.")
+
+        try:
+            job_model = JobModel.objects.restrict(request.user, "run").get(
+                module_name=RunComplianceRules.__module__,
+                job_class_name=RunComplianceRules.__name__,
+            )
+        except JobModel.DoesNotExist:
+            raise NotFound("The RunComplianceRules job is not registered.")
+
+        if not job_model.enabled:
+            raise PermissionDenied("This job is not enabled to be run.")
+
+        try:
+            cleaned_data = RunComplianceRules.validate_data(request.data)
+        except (DjangoValidationError, ObjectDoesNotExist) as exc:
+            errors = exc.message_dict if hasattr(exc, "message_dict") else getattr(exc, "messages", [str(exc)])
+            return Response({"errors": errors}, status=status.HTTP_400_BAD_REQUEST)
+
+        job_kwargs = RunComplianceRules.serialize_data(cleaned_data)
+        job_result = JobResult.enqueue_job(job_model, request.user, job_kwargs=job_kwargs)
+
+        serializer = JobResultSerializer(job_result, context={"request": request})
+        return Response({"job_result": serializer.data}, status=status.HTTP_202_ACCEPTED)
